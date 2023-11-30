@@ -71,7 +71,6 @@ class InputFilter(IOFilter):
     def reset_line(self):
         self.current_line = b""
         self.cursor_pos = 0
-        self.state_manager.set_insert()
         self.history_manager.ingest()
 
     @staticmethod
