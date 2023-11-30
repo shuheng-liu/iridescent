@@ -53,11 +53,11 @@ class IOFilter(ABC):
 
 
 class InputFilter(IOFilter):
-    def __init__(self, file=None, dlogger=None, normal_timeout=None, history_manager=None):
+    def __init__(self, file=None, dlogger=None, history_manager=None):
         super().__init__(file=file, dlogger=dlogger)
         self.current_line = None
         self.cursor_pos = 0
-        self.state_manager = EditorStateManger(normal_timeout=normal_timeout)
+        self.state_manager = EditorStateManger()
         self.history_manager = history_manager
         self.handlers = [H(self) for H in HANDLER_CLASSES]
         self.reset_line()

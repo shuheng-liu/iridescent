@@ -17,15 +17,12 @@ class EditorState(Enum):
 
 
 class EditorStateManger:
-    def __init__(self, normal_timeout=1.0):
+    def __init__(self):
         self._state = EditorState.INSERT
-        self._timeout = normal_timeout
-        self._last_normal = None
         self._action_buffer = None
 
     def set_normal(self):  # set to normal mode
         self._state = EditorState.NORMAL
-        self._last_normal = time.time()
         self._action_buffer = None
         _set_cursor_block()
 
@@ -36,16 +33,6 @@ class EditorStateManger:
 
     @property
     def state(self):
-        if self._timeout is None:
-            return self._state
-
-        if self._state != EditorState.NORMAL:
-            return self._state
-
-        now = time.time()
-        if now - self._last_normal > self._timeout:
-            self.set_insert()
-
         return self._state
 
     def buffer(self, key, current_line, cursor_pos):
