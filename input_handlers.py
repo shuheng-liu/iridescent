@@ -197,6 +197,11 @@ class ActionHandler(NormalModeHandler):
         return output
 
 
+class VimEnterHandler(NormalModeHandler, LineEndHandler):
+    def accepts_mode(self, mode):
+        return NormalModeHandler.accepts_mode(self, mode)
+
+
 class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
     def accepts_mode(self, mode):
         return NormalModeHandler.accepts_mode(self, mode)

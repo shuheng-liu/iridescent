@@ -19,10 +19,10 @@ def test_history_manager(history_file):
     with HistoryManager(FILENAME, 2) as hm:
         assert hm.retrieve_buffer() == b""
 
-        hm.buffer(b"d")
+        hm.set_buffer(b"d")
         assert hm.retrieve_buffer() == b"d"
 
-        hm.buffer(b"dd")
+        hm.set_buffer(b"dd")
         assert hm.retrieve_buffer() == b"dd"
 
         assert hm.go_prev() == b"ccc"

@@ -1,8 +1,14 @@
 import os
+import re
+
+DEFAULT_REJECT_REGEXES = (
+    re.compile(r"h\s*", re.IGNORECASE),
+    re.compile(r"halt\s*", re.IGNORECASE),
+)
 
 
 class HistoryManager:
-    def __init__(self, file, init_max_size=5000):
+    def __init__(self, file, init_max_size=5000, reject_regexes=DEFAULT_REJECT_REGEXES):
         self.file = file
 
         if file and os.path.exists(file) and os.path.isfile(file):
@@ -16,6 +22,7 @@ class HistoryManager:
         self.init_size = len(self.history)
         self.index = self.init_size - 1
         self._buffer = ""
+        self.reject_regexes = reject_regexes
 
     def _emit(self):
         if self.index == len(self.history):
@@ -31,17 +38,25 @@ class HistoryManager:
         self.index = (self.index + 1) % (len(self.history) + 1)
         return self._emit()
 
+    def _ingestible(self, buf):
+        if not buf:
+            return False
+        for regex in self.reject_regexes:
+            if regex.fullmatch(buf):
+                return False
+        return len(self.history) == 0 or buf != self.history[-1]
+
     def ingest(self):
-        if self._buffer and (len(self.history) == 0 or self._buffer != self.history[-1]):
+        if self._ingestible(self._buffer):
             self.history.append(self._buffer)
         self.index = len(self.history)
-        self.buffer(b"")
+        self.set_buffer(b"")
 
     def retrieve_buffer(self):
         self.index = len(self.history)
         return self._emit()
 
-    def buffer(self, line: bytes):
+    def set_buffer(self, line: bytes):
         self._buffer = line.decode()
 
     def write_to_disk(self):

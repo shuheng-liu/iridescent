@@ -17,6 +17,7 @@ HANDLER_CLASSES = [
     LineEndHandler,
     DefaultHandler,
     VimNavigationHandler,
+    VimEnterHandler,
     ActionHandler,
 ]
 
@@ -182,7 +183,7 @@ class InputFilter(IOFilter):
             output += LEFT
 
         if not disable_history_buffer:
-            self.history_manager.buffer(self.current_line)
+            self.history_manager.set_buffer(self.current_line)
 
         self.log_key(output, is_old=False)
         self.debug_cursor()
