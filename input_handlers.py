@@ -164,7 +164,7 @@ class NormalModeHandler(AbstractKeyStrokeHandler):
         return mode == EditorState.NORMAL
 
 
-class ActionHandler(NormalModeHandler):
+class VimActionHandler(NormalModeHandler):
     def accepts_key(self, key):
         return key.decode().isprintable()
 

@@ -18,7 +18,7 @@ HANDLER_CLASSES = [
     DefaultHandler,
     VimNavigationHandler,
     VimEnterHandler,
-    ActionHandler,
+    VimActionHandler,
 ]
 
 
