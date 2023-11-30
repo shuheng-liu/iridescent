@@ -2,7 +2,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from typing import List, Union, Tuple
 from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE
-from utils import whitespace, next_predicate, prev_predicate, get_chunk
+from utils import printable, whitespace, next_predicate, prev_predicate, get_chunk
 from clipboard import clipboard
 
 
@@ -51,6 +51,8 @@ class ActionEnum(Enum):  # vim-like actions
 
     p = b"p"  # paste after
     P = b"P"  # paste before
+
+    r = b"r"  # replace the character under cursor
 
 
 class Action(ABC):
@@ -225,6 +227,14 @@ class PasteAfter(Action):
         return [Op.RIGHT, clipboard.paste(), Op.LEFT]
 
 
+class ReplaceCharacter(Action):
+    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+        if arg not in printable or arg == "\n":
+            return []
+
+        return self.right(1) + self.delete(1) + [arg]
+
+
 __lookup = {
     ActionEnum.d: Delete,
     ActionEnum.di: DeleteInBetween,
@@ -240,6 +250,7 @@ __lookup = {
     ActionEnum.A: AppendAtLineEnd,
     ActionEnum.p: PasteAfter,
     ActionEnum.P: PasteBefore,
+    ActionEnum.r: ReplaceCharacter,
 }
 
 
