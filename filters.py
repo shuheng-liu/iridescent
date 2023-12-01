@@ -163,6 +163,15 @@ class InputFilter(IOFilter):
         self.move_cursor_right(count)
         return RIGHT * count
 
+    def move_cursor_vim(self, vf, capital):
+        assert self.state_manager.state == EditorState.NORMAL
+        new_npos = vf(self.current_line, self.cursor_pos, capital)
+        right = new_npos - self.cursor_pos
+        if right > 0:
+            return self.move_cursor_right(right)
+        else:
+            return self.move_cursor_left(-right)
+
     def __call__(self, key):
         if not isinstance(key, bytes):
             raise TypeError("InputFilter only accepts bytes as input")

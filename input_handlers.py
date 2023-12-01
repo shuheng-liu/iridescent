@@ -3,7 +3,7 @@ from editor import EditorState
 from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE
 from vim_actions import Op
 from clipboard import clipboard
-from utils import printable
+from utils import printable, vim_word, vim_word_begin, vim_word_end
 
 
 class AbstractKeyStrokeHandler(ABC):
@@ -231,6 +231,8 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
             b"j", b"k",
             b"h", b"l",
             b"b", b"w",
+            b"B", b"W",
+            b"e", b"E",
             b"0", b"$",
             b"G",
         ]
@@ -239,31 +241,45 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
         if key in [UP, b"k"]:
             buffer = self.filter_obj.history_manager.go_prev()
             return HistoryNavigationHandler._set_history(self, buffer)
-        elif key in [DOWN, b"j"]:
+
+        if key in [DOWN, b"j"]:
             buffer = self.filter_obj.history_manager.go_next()
             return HistoryNavigationHandler._set_history(self, buffer)
-        elif key == b"G":
+
+        if key == b"G":
             buffer = self.filter_obj.history_manager.retrieve_buffer()
             return HistoryNavigationHandler._set_history(self, buffer)
-        elif key in [LEFT, b"h"]:
+
+        if key in [LEFT, b"h"]:
             self.filter_obj.move_cursor_left()
             return LEFT
-        elif key in [RIGHT, b"l"]:
+
+        if key in [RIGHT, b"l"]:
             return self.filter_obj.move_cursor_right()
-        elif key == b"0":
+
+        if key == b"0":
             count = self.filter_obj.cursor_pos
             self.filter_obj.move_cursor_left(count)
             return count * LEFT
-        elif key == b"$":
+
+        if key == b"$":
             count = len(self.filter_obj.current_line) - self.filter_obj.cursor_pos
             self.filter_obj.move_cursor_right(count)
             return count * RIGHT
-        elif key == b"b":
-            return self.filter_obj.move_cursor_left_by_chunk()
-        elif key == b"w":
-            return self.filter_obj.move_cursor_right_by_chunk()
 
-        return b""
+        vf_lookup = {
+            b"w": (vim_word, False),
+            b"W": (vim_word, True),
+            b"b": (vim_word_begin, False),
+            b"B": (vim_word_begin, True),
+            b"e": (vim_word_end, False),
+            b"E": (vim_word_end, True),
+        }
+        try:
+            vf, capital = vf_lookup[key]
+            return self.filter_obj.move_cursor_vim(vf, capital)
+        except IndexError:
+            return b""
 
 
 class ReplaceModeHandler(AbstractKeyStrokeHandler):
