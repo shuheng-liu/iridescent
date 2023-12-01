@@ -1,11 +1,6 @@
 import pytest
 
 
-@pytest.fixture
-def content():
-    return b" ABCD EFGH "
-
-
 @pytest.mark.parametrize(
     argnames=['pos', 'expected'],
     argvalues=[
@@ -25,8 +20,9 @@ def content():
         [12, Exception],
     ]
 )
-def test_chunk_leftmost(pos, expected, content):
+def test_chunk_leftmost(pos, expected):
     from utils import _chunk_leftmost as cl
+    content = b" ABCD EFGH "
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
             cl(content, pos)
@@ -54,11 +50,147 @@ def test_chunk_leftmost(pos, expected, content):
         [12, Exception],
     ]
 )
-def test_chunk_rightmost(pos, expected, content):
+def test_chunk_rightmost(pos, expected):
     from utils import _chunk_rightmost as cr
+    content = b" ABCD EFGH "
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
             cr(content, pos)
     else:
         output = cr(content, pos)
+        assert output == expected
+
+
+@pytest.mark.parametrize(
+    argnames=['npos', 'expected', 'capital'],
+    argvalues=[
+        [-1, Exception, True],
+        [0, 1, True],  # "| |A@C  ^%G  "
+        [1, 6, True],  # " |A|@C  ^%G  "
+        [2, 6, True],  # " A|@|C  ^%G  "
+        [3, 6, True],  # " A@|C|  ^%G  "
+        [4, 6, True],  # " A@C| | ^%G  "
+        [5, 6, True],  # " A@C | |^%G  "
+        [6, 11, True],  # " A@C  |^|%G  "
+        [7, 11, True],  # " A@C  ^|%|G  "
+        [8, 11, True],  # " A@C  ^%|G|  "
+        [9, 11, True],  # " A@C  ^%G| | "
+        [10, 11, True],  # " A@C  ^%G | |"
+        [11, Exception, True],
+
+        # same as above, but capital is set to False
+        [-1, Exception, False],
+        [0, 1, False],  # "| |A@C  ^%G  "
+        [1, 2, False],  # " |A|@C  ^%G  "
+        [2, 3, False],  # " A|@|C  ^%G  "
+        [3, 6, False],  # " A@|C|  ^%G  "
+        [4, 6, False],  # " A@C| | ^%G  "
+        [5, 6, False],  # " A@C | |^%G  "
+        [6, 8, False],  # " A@C  |^|%G  "
+        [7, 8, False],  # " A@C  ^|%|G  "
+        [8, 11, False],  # " A@C  ^%|G|  "
+        [9, 11, False],  # " A@C  ^%G| | "
+        [10, 11, False],  # " A@C  ^%G | |"
+        [11, Exception, False],
+    ]
+)
+def test_vim_word(npos, expected, capital):
+    from utils import vim_word
+    content = b" A@C  ^%G  "
+
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            vim_word(content, npos, capital=capital)
+    else:
+        output = vim_word(content, npos, capital=capital)
+        assert output == expected
+
+
+@pytest.mark.parametrize(
+    argnames=['npos', 'expected', 'capital'],
+    argvalues=[
+        [-1, Exception, True],
+        [0, 3, True],  # "| |A@C  ^%G  "
+        [1, 3, True],  # " |A|@C  ^%G  "
+        [2, 3, True],  # " A|@|C  ^%G  "
+        [3, 8, True],  # " A@|C|  ^%G  "
+        [4, 8, True],  # " A@C| | ^%G  "
+        [5, 8, True],  # " A@C | |^%G  "
+        [6, 8, True],  # " A@C  |^|%G  "
+        [7, 8, True],  # " A@C  ^|%|G  "
+        [8, 11, True],  # " A@C  ^%|G|  "
+        [9, 11, True],  # " A@C  ^%G| | "
+        [10, 11, True],  # " A@C  ^%G | |"
+        [11, Exception, True],
+
+        # same as above, but capital is set to False
+        [-1, Exception, False],
+        [0, 1, False],  # "| |A@C  ^%G  "
+        [1, 2, False],  # " |A|@C  ^%G  "
+        [2, 3, False],  # " A|@|C  ^%G  "
+        [3, 7, False],  # " A@|C|  ^%G  "
+        [4, 7, False],  # " A@C| | ^%G  "
+        [5, 7, False],  # " A@C | |^%G  "
+        [6, 7, False],  # " A@C  |^|%G  "
+        [7, 8, False],  # " A@C  ^|%|G  "
+        [8, 11, False],  # " A@C  ^%|G|  "
+        [9, 11, False],  # " A@C  ^%G| | "
+        [10, 11, False],  # " A@C  ^%G | |"
+        [11, Exception, False],
+    ]
+)
+def test_vim_word_end(npos, expected, capital):
+    from utils import vim_word_end
+    content = b" A@C  ^%G  "
+
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            vim_word_end(content, npos, capital=capital)
+    else:
+        output = vim_word_end(content, npos, capital=capital)
+        assert output == expected
+
+
+@pytest.mark.parametrize(
+    argnames=['npos', 'expected', 'capital'],
+    argvalues=[
+        [-1, Exception, True],
+        [0, -1, True],  # "| |A@C  ^%G  "
+        [1, -1, True],  # " |A|@C  ^%G  "
+        [2, 1, True],  # " A|@|C  ^%G  "
+        [3, 1, True],  # " A@|C|  ^%G  "
+        [4, 1, True],  # " A@C| | ^%G  "
+        [5, 1, True],  # " A@C | |^%G  "
+        [6, 1, True],  # " A@C  |^|%G  "
+        [7, 6, True],  # " A@C  ^|%|G  "
+        [8, 6, True],  # " A@C  ^%|G|  "
+        [9, 6, True],  # " A@C  ^%G| | "
+        [10, 6, True],  # " A@C  ^%G | |"
+        [11, Exception, True],
+
+        # same as above, but capital is set to False
+        [-1, Exception, False],
+        [0, -1, False],  # "| |A@C  ^%G  "
+        [1, -1, False],  # " |A|@C  ^%G  "
+        [2, 1, False],  # " A|@|C  ^%G  "
+        [3, 2, False],  # " A@|C|  ^%G  "
+        [4, 3, False],  # " A@C| | ^%G  "
+        [5, 3, False],  # " A@C | |^%G  "
+        [6, 3, False],  # " A@C  |^|%G  "
+        [7, 6, False],  # " A@C  ^|%|G  "
+        [8, 6, False],  # " A@C  ^%|G|  "
+        [9, 8, False],  # " A@C  ^%G| | "
+        [10, 8, False],  # " A@C  ^%G | |"
+        [11, Exception, False],
+    ]
+)
+def test_vim_word_begin(npos, expected, capital):
+    from utils import vim_word_begin
+    content = b" A@C  ^%G  "
+
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            vim_word_begin(content, npos, capital=capital)
+    else:
+        output = vim_word_begin(content, npos, capital=capital)
         assert output == expected

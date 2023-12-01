@@ -1,10 +1,13 @@
 from string import ascii_letters, digits, punctuation, whitespace
+from enum import Enum
 
 whitespace = b" \n\t"
 ascii_letters = ascii_letters.encode('utf-8')
 digits = digits.encode('utf-8')
 punctuation = punctuation.encode('utf-8')
 printable = ascii_letters + digits + punctuation + whitespace
+
+_word_components = ascii_letters + digits + b"_"
 
 nonwhitespace_printable = ascii_letters + digits + punctuation
 
@@ -71,3 +74,84 @@ def prev_predicate(content, pos, predicate):
             return -1
         if predicate(content[pos]):
             return pos
+
+
+class _ByteGroup(Enum):
+    NONWHITESPACE = -1
+    WHITESPACE = 0
+    ALPHANUMERIC = 1
+    PUNCTUATION = 2
+
+
+def _get_group(byte, capital):
+    if capital:
+        return _ByteGroup.WHITESPACE if byte in b' \t' else _ByteGroup.NONWHITESPACE
+    if byte in whitespace:
+        return _ByteGroup.WHITESPACE
+    elif byte in _word_components:
+        return _ByteGroup.ALPHANUMERIC
+    elif byte in punctuation:
+        return _ByteGroup.PUNCTUATION
+    raise ValueError("Invalid byte: " + repr(byte))
+
+
+def vim_word(content, npos, capital=False):  # emulate "w"/"W" in vim
+    r"""Return the beginning of the next word if there is one. Otherwise, return len(content)."""
+    assert 0 <= npos < len(content)
+    grp = _get_group(content[npos], capital)
+    while True:
+        npos += 1
+        if npos == len(content):
+            return len(content)
+
+        newgrp = _get_group(content[npos], capital)
+        if grp != newgrp and newgrp is not _ByteGroup.WHITESPACE:
+            return npos
+        grp = newgrp
+
+
+def vim_word_end(content, npos, capital=False):  # emulate "e"/"E" in vim
+    r"""Return the next end-of-word. If none found, return len(content)."""
+    assert 0 <= npos < len(content)
+    grp = _get_group(content[npos], capital)
+    is_group_end = npos == len(content) - 1 or _get_group(content[npos + 1], capital) != grp
+
+    # ensure we are inside the word of interest, not in a whitespace, or an end-of-word already,
+    if grp is _ByteGroup.WHITESPACE or is_group_end:
+        npos = vim_word(content, npos, capital)
+        if npos == len(content):
+            return len(content)
+        grp = _get_group(content[npos], capital)
+
+    while True:
+        npos += 1
+        if npos == len(content):
+            return npos - 1
+        newgrp = _get_group(content[npos], capital)
+        if grp != newgrp:
+            return npos - 1
+        grp = newgrp
+
+
+def vim_word_begin(content, npos, capital=False):  # emulate "b"/"B" in vim
+    r"""Return the previous begin-of-word. If none found, return -1."""
+    assert 0 <= npos < len(content)
+    grp = _get_group(content[npos], capital)
+    is_group_begin = (npos == 0) or _get_group(content[npos - 1], capital) != grp
+
+    # ensure we are inside the word of interest, not in a whitespace, or an begin-of-word already,
+    while grp is _ByteGroup.WHITESPACE or is_group_begin:
+        npos -= 1
+        is_group_begin = False
+        if npos < 0:
+            return -1
+        grp = _get_group(content[npos], capital)
+
+    while True:
+        npos -= 1
+        if npos < 0:
+            return 0
+        newgrp = _get_group(content[npos], capital)
+        if grp != newgrp:
+            return npos + 1
+        grp = newgrp
