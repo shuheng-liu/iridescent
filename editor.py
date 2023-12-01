@@ -11,9 +11,14 @@ def _set_cursor_block():
     print("\x1B[2 q", end="", flush=True)
 
 
+def _set_cursor_underline():
+    print("\x1B[3 q", end="", flush=True)
+
+
 class EditorState(Enum):
     NORMAL = 'normal'
     INSERT = 'insert'
+    REPLACE = "replace"
 
 
 class EditorStateManger:
@@ -31,11 +36,16 @@ class EditorStateManger:
         self._action_buffer = None
         _set_cursor_vertical()
 
+    def set_replace(self):
+        self._state = EditorState.REPLACE
+        self._action_buffer = None
+        _set_cursor_underline()
+
     @property
     def state(self):
         return self._state
 
-    def buffer(self, key, current_line, cursor_pos):
+    def normal_buffer(self, key, current_line, cursor_pos):
         if len(key) != 1:
             self._action_buffer = None
             return []

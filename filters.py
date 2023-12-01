@@ -15,10 +15,11 @@ HANDLER_CLASSES = [
     OptionLeftHandler,
     OptionRightHandler,
     LineEndHandler,
-    DefaultHandler,
     VimNavigationHandler,
     VimEnterHandler,
     VimActionHandler,
+    ReplaceModeHandler,
+    DefaultHandler,
 ]
 
 
@@ -72,6 +73,7 @@ class InputFilter(IOFilter):
         self.current_line = b""
         self.cursor_pos = 0
         self.history_manager.ingest()
+        return b"\r"
 
     @staticmethod
     def is_line_end(key):
@@ -143,12 +145,14 @@ class InputFilter(IOFilter):
         return LEFT * count
 
     def move_cursor_right(self, by=1):
+        output = b""
         if isinstance(by, bytes):
             self.current_line = self.current_line[:self.cursor_pos] + by + self.current_line[self.cursor_pos:]
+            output = by
             by = len(by)
         old_pos = self.cursor_pos
         self.cursor_pos = min(len(self.current_line), self.cursor_pos + by)
-        return RIGHT * (self.cursor_pos - old_pos)
+        return output or RIGHT * (self.cursor_pos - old_pos)
 
     def move_cursor_right_by_chunk(self):
         new_pos = _chunk_rightmost(self.current_line, self.cursor_pos)

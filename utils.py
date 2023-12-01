@@ -1,10 +1,10 @@
-from string import ascii_letters, digits, punctuation, whitespace, printable
+from string import ascii_letters, digits, punctuation, whitespace
 
-whitespace = whitespace.encode('utf-8')
+whitespace = b" \n\t"
 ascii_letters = ascii_letters.encode('utf-8')
 digits = digits.encode('utf-8')
 punctuation = punctuation.encode('utf-8')
-printable = printable.encode('utf-8')
+printable = ascii_letters + digits + punctuation + whitespace
 
 nonwhitespace_printable = ascii_letters + digits + punctuation
 

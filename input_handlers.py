@@ -3,6 +3,7 @@ from editor import EditorState
 from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE
 from vim_actions import Op
 from clipboard import clipboard
+from utils import printable
 
 
 class AbstractKeyStrokeHandler(ABC):
@@ -63,7 +64,10 @@ class PrintableHandler(InputModeHandler):
         return key
 
 
-class DeleteHandler(InputModeHandler):
+class DeleteHandler(AbstractKeyStrokeHandler):
+    def accepts_mode(self, mode):
+        return mode in [EditorState.INSERT, EditorState.REPLACE]
+
     def accepts_key(self, key):
         return key == DELETE
 
@@ -79,7 +83,10 @@ class OptionDeleteHandler(InputModeHandler):
         return self.filter_obj.delete_by_chunk()
 
 
-class HistoryNavigationHandler(InputModeHandler):
+class HistoryNavigationHandler(AbstractKeyStrokeHandler):
+    def accepts_mode(self, mode):
+        return mode in [EditorState.INSERT, EditorState.NORMAL, EditorState.REPLACE]
+
     def accepts_key(self, key):
         return key in [UP, DOWN]
 
@@ -107,7 +114,10 @@ class SigBellHandler(InputModeHandler):
         return b''
 
 
-class LeftHandler(InputModeHandler):
+class LeftHandler(AbstractKeyStrokeHandler):
+    def accepts_mode(self, mode):
+        return mode in [EditorState.INSERT, EditorState.NORMAL, EditorState.REPLACE]
+
     def accepts_key(self, key):
         return key == LEFT
 
@@ -115,7 +125,10 @@ class LeftHandler(InputModeHandler):
         return self.filter_obj.move_cursor_left()
 
 
-class RightHandler(InputModeHandler):
+class RightHandler(AbstractKeyStrokeHandler):
+    def accepts_mode(self, mode):
+        return mode in [EditorState.INSERT, EditorState.NORMAL, EditorState.REPLACE]
+
     def accepts_key(self, key):
         return key == RIGHT
 
@@ -148,15 +161,18 @@ class LineEndHandler(InputModeHandler):
         return ENTER
 
 
-class DefaultHandler(InputModeHandler):
+class DefaultHandler(AbstractKeyStrokeHandler):
+    def accepts_mode(self, mode):
+        return True
+
     def accepts_key(self, key):
         # This should be at the last in the list of handlers
         # as it will accept all keys and handle the unhandled keys
         return True
 
     def handle(self, key, mode):
-        self.filter_obj.debug("Unhandled key stroke: ", key)
-        return key
+        self.filter_obj.debug(f"Unhandled key : {key}, mode: {mode}")
+        return b""
 
 
 class NormalModeHandler(AbstractKeyStrokeHandler):
@@ -169,7 +185,7 @@ class VimActionHandler(NormalModeHandler):
         return key.decode().isprintable()
 
     def handle(self, key, mode):
-        ops = self.filter_obj.state_manager.buffer(
+        ops = self.filter_obj.state_manager.normal_buffer(
             key,
             self.filter_obj.current_line,
             self.filter_obj.cursor_pos,
@@ -248,3 +264,24 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
             return self.filter_obj.move_cursor_right_by_chunk()
 
         return b""
+
+
+class ReplaceModeHandler(AbstractKeyStrokeHandler):
+    def accepts_mode(self, mode):
+        return mode == EditorState.REPLACE
+
+    def accepts_key(self, key):
+        return key in printable or key == b"\r"
+
+    def handle(self, key, mode):
+        if key in b"\r\n":
+            return self.filter_obj.reset_line()
+
+        if self.filter_obj.cursor_pos == len(self.filter_obj.current_line):
+            return self.filter_obj.move_cursor_right(key)
+
+        return (
+                self.filter_obj.move_cursor_right()
+                + self.filter_obj.delete()
+                + self.filter_obj.move_cursor_right(key)
+        )

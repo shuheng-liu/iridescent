@@ -28,6 +28,11 @@ class SetInsert(SpecialOp):
         editor_state_manager.set_insert()
 
 
+class SetReplace(SpecialOp):
+    def control(self, editor_state_manager, ops):
+        editor_state_manager.set_replace()
+
+
 ActionOutput = Union[
     List[Union[Op, bytes]],
     Tuple[List[Union[Op, bytes]], List[SpecialOp]]
@@ -53,6 +58,7 @@ class ActionEnum(Enum):  # vim-like actions
     P = b"P"  # paste before
 
     r = b"r"  # replace the character under cursor
+    R = b"R"  # change vim to replace mode
 
 
 class Action(ABC):
@@ -235,6 +241,14 @@ class ReplaceCharacter(Action):
         return self.right(1) + self.delete(1) + [arg]
 
 
+class EnterReplaceMode(Action):
+    NO_ARG = True
+
+    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+        assert arg is None
+        return [], [SetReplace()]
+
+
 __lookup = {
     ActionEnum.d: Delete,
     ActionEnum.di: DeleteInBetween,
@@ -251,6 +265,7 @@ __lookup = {
     ActionEnum.p: PasteAfter,
     ActionEnum.P: PasteBefore,
     ActionEnum.r: ReplaceCharacter,
+    ActionEnum.R: EnterReplaceMode,
 }
 
 
