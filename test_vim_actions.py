@@ -157,7 +157,21 @@ def test_delete(arg, pos, exp_right, exp_delete):
         (b')', 3, 1, 3),  # '(he|y)'
         (b')', 4, 0, 3),  # '(hey|)'
 
-        # # same as above, except text object is nonexistent, should always fail
+        # same as above, except text object = 'w'
+        (b'w', 0, 1, 1),  # '|(hey)'
+        (b'w', 1, 3, 3),  # '(|hey)'
+        (b'w', 2, 2, 3),  # '(h|ey)'
+        (b'w', 3, 1, 3),  # '(he|y)'
+        (b'w', 4, 1, 1),  # '(hey|)'
+
+        # same as above, except text object = 'W'
+        (b'W', 0, 5, 5),  # '|(hey)'
+        (b'W', 1, 4, 5),  # '(|hey)'
+        (b'W', 2, 3, 5),  # '(h|ey)'
+        (b'W', 3, 2, 5),  # '(he|y)'
+        (b'W', 4, 1, 5),  # '(hey|)'
+
+        # same as above, except text object is nonexistent, should always fail
         (b'[', 0, 0, 0),  # '|(hey)'
         (b'{', 1, 0, 0),  # '(|hey)'
         (b'.', 2, 0, 0),  # '(h|ey)'
