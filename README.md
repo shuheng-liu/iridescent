@@ -1,5 +1,59 @@
 # Viris – Vim meets IRIS
 
+## Usage
+
+```bash
+viris [-h] [--input-path INPUT_PATH] [--output-path OUTPUT_PATH] [--debug-path DEBUG_PATH] [--history-path HISTORY_PATH] [instance]
+```
+
+Positional arguments
+
+```
+  instance (defaults to $IRIS_INSTANCE environment variable)
+```
+
+Optional arguments
+
+```
+  -h, --help            show the help message and exit
+  --input-path INPUT_PATH, -i INPUT_PATH
+                        location of input logs
+  --output-path OUTPUT_PATH, -o OUTPUT_PATH
+                        location of output logs
+  --debug-path DEBUG_PATH, -d DEBUG_PATH
+                        Location of debugging logs
+  --history-path HISTORY_PATH, -H HISTORY_PATH
+                        Location of history file
+```
+
+Environment variables
+
+- `$IRIS_USERNAME` and `$IRIS_PASSWORD`: If both are set, will be used for authentication.
+- `$IRIS_INSTANCE`: If present, will be the default instance.
+
+## How it works
+
+The project is based on the [`pexpect`](https://pexpect.readthedocs.io/en/stable/) library.
+
+Once `viris` starts, it spins up another process 
+of [InterSystems IRIS](https://docs.intersystems.com/iris20233/csp/docbook/Doc.View.cls?KEY=TOS_Terminal) terminal 
+that runs in the background.
+`viris` intercepts user keystrokes, parses them, and passes along to the background `IRIS terminal` process, and renders
+the output of `IRIS terminal` back to the user.
+To parse keystrokes, `viris` maintains an inner state of the current prompt line, position of the cursor, and shape of 
+the cursor (vertical bar for *Insert* mode, rectangular block for *Normal* mode, underscore for *Replace* mode). 
+For example, in *Insert* mode, hitting `<OPTION> + <DELETE>` or `<ALT> + <DELETE>` when the current prompt and cursor 
+positions is
+```
+USER>set obj = ##class(%Dynam|icObject).%New()     // vertical bar "|" is cursor position
+```
+will send 5 `<DELETE>`s to the backend `IRIS terminal` process and the resulting prompt will be
+```
+USER>set obj = ##class(%|icObject).%New()          // vertical bar "|" is cursor position
+```
+.
+
+
 ## Supported Vim Modes
 
 Currently, there are 3 modes supported
@@ -29,14 +83,18 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `$`: Navigate to the end of line.
     - `f<char>`: Navigate to the next occurrence of `<char>` (TODO)
     - `F<char>`: Navigate to the previous occurrence of `<char>` (TODO)
+    - `t<char>`: Navigate to the character before the next occurrence of `<char>` (TODO)
+    - `T<char>`: Navigate to the character after the previous occurrence of `<char>` (TODO)
+    - `%`: Navigate between matching pairs of parentheses, square brackets, angle brackets, or curly braces. (TODO)
 - Deletion:
-    - `dw`/`dW`: Delete until the next beginning-of-word (to be fixed).
-    - `de`/`dE`: Delete until the next end-of-word (to be fixed).
-    - `db`/`dB`: Delete until the previous beginning-of-word (to be fixed).
+    - `dw`/`dW`: Delete until the next beginning-of-word (FIXME).
+    - `de`/`dE`: Delete until the next end-of-word (FIXME).
+    - `db`/`dB`: Delete until the previous beginning-of-word (FIXME).
     - `dd`: Delete all characters on the current line.
     - `d0`: Delete until beginning of the line.
     - `d$`: Delete until end of the line.
-    - `dt<char>`: Delete until the next occurrence of `<char>`.
+    - `dt<char>`: Delete until the next occurrence of `<char>` (exclusive).
+    - `df<char>`: Delete until the next occurrence of `<char>` (inclusive).
     - `di<char>`: Delete everything within the enclosing pair of
         - parentheses `(...)`: if `<char>` is either `(` or `)`
         - square brackets `[...]`: if `<char>` is either `[` or `]`
@@ -46,21 +104,21 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
         - single quotes `'...'`: if `<char>` is single quote `'`
         - double quotes `"..."`: if `<char>` is double quote `"`
         - commas `,...,` if `<char>` is comma `,` (standard Vim doesn't support this)
-        - spaces ` ... ` if `<char>` is space ` ` (standard Vim doesn't support this)
+        - spaces <code>&nbsp;...&nbsp;</code> if `<char>` is space ` ` (standard Vim doesn't support this)
     - `x`: Delete the character under cursor
 - Change:
     - The change commands are almost identical to the delete commands listed above.
       The difference is that a change command will exit *Normal* mode and enter *Insert* mode after deleting characters.
     - The keystrokes for a change command is obtained by changing the leading `d` to `c`.
-        - `cw`, `cW`, `ce`, `cE`, `cb`, `cB`, `c0`, `c$`, `ct<char>`, `ci<char>`
+        - `cw`, `cW`, `ce`, `cE`, `cb`, `cB`, `c0`, `c$`, `ct<char>`, `cf<char>`, `ci<char>`
     - Special cases are:
         - `cc`: Delete the current line and set to insert mode.
         - `s`: Delete the character under cursor and set to insert mode.
 - Copy/Paste:
     - A text segment is automatically copied to the internal clipboard once it's deleted by a *Delete* or *Change*
       command.
-    - You can optionally copy something without deleting them with the yank commands: (to be implemented)
-      `yw`, `yW`, `ye`, `yE`, `yb`, `yB`, `yy`, `y0`, `y$`, `yt<yhar>`, `yi<yhar>`
+    - You can optionally copy something without deleting them with the yank commands: (TODO)
+      `yw`, `yW`, `ye`, `yE`, `yb`, `yB`, `yy`, `y0`, `y$`, `yt<char>`, `yf<char>`, `yi<char>`
     - To paste the content of the clipboard use `p` (paste to the right of the current block-shaped cursor) or `P` (
       paste to the left of the current block-shaped cursor)
 - Switch between modes:
@@ -71,7 +129,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `I`: Exit *Normal* mode and enter *Insert* mode, moving the cursor (vertical bar) to beginning of the line.
     - `A`: Exit *Normal* mode and enter *Insert* mode, moving the cursor (vertical bar) to end of the line.
     - `R`: Exit *Normal* mode and enter *Replace* mode, preserving the cursor (underscore) position.
-- Search through history: (To be implemented)
+- Search through history: (TODO)
     - `?<search-string><Enter>`: search the history from latest to oldest, where <search-string> is any regex string.
       Notice the leading `?`.
     - `/<search-string><Enter>`: search the history from oldest to latest. Notice the leading `/`.
@@ -80,9 +138,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
       string blindly.
 - Miscellaneous
     - `Enter`: Sends the current line. Notice that the next prompt will still be in *Normal* mode.
-    - `~`: Switch casing of the current character. I.e., change `a` to 'A` and `A` to `a` (To be implemented)
-    - `%`: Navigate between matching pairs of parentheses, square brackets, angle brackets, or curly braces. (To be
-      implemented)
+    - `~`: Switch casing of the current character. I.e., change `a` to 'A` and `A` to `a` (TODO)
 
 ## Unsupported Vim Features
 
