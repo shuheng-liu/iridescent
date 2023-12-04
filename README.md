@@ -87,9 +87,9 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `T<char>`: Navigate to the character after the previous occurrence of `<char>` (TODO)
     - `%`: Navigate between matching pairs of parentheses, square brackets, angle brackets, or curly braces. (TODO)
 - Deletion:
-    - `dw`/`dW`: Delete until the next beginning-of-word (FIXME).
-    - `de`/`dE`: Delete until the next end-of-word (FIXME).
-    - `db`/`dB`: Delete until the previous beginning-of-word (FIXME).
+    - `dw`/`dW`: Delete until the next beginning-of-word.
+    - `de`/`dE`: Delete until the next end-of-word.
+    - `db`/`dB`: Delete until the previous beginning-of-word.
     - `dd`: Delete all characters on the current line.
     - `d0`: Delete until beginning of the line.
     - `d$`: Delete until end of the line.

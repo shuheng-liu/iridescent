@@ -155,3 +155,16 @@ def vim_word_begin(content, npos, capital=False):  # emulate "b"/"B" in vim
         if grp != newgrp:
             return npos + 1
         grp = newgrp
+
+
+def vim_line_end(content, npos, capital=False):
+    r"""Return the position of end of line"""
+    assert capital is False
+    assert 0 <= npos < len(content)
+    return len(content) - 1
+
+
+def vim_line_begin(content, npos, capital=False):
+    assert capital is False
+    assert 0 <= npos < len(content)
+    return 0

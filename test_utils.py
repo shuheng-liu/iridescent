@@ -194,3 +194,41 @@ def test_vim_word_begin(npos, expected, capital):
     else:
         output = vim_word_begin(content, npos, capital=capital)
         assert output == expected
+
+
+@pytest.mark.parametrize(
+    argnames=["npos", "err"],
+    argvalues=[
+        [-1, True],
+        [0, False],
+        [1, False],
+        [2, False],
+    ]
+)
+def test_vim_line_begin(npos, err):
+    from utils import vim_line_begin
+    content = b"ABC"
+    if err:
+        with pytest.raises(Exception):
+            vim_line_begin(content, npos, False)
+    else:
+        assert vim_line_begin(content, npos, False) == 0
+
+
+@pytest.mark.parametrize(
+    argnames=["npos", "err"],
+    argvalues=[
+        [-1, True],
+        [0, False],
+        [1, False],
+        [2, False],
+    ]
+)
+def test_vim_line_begin(npos, err):
+    from utils import vim_line_end
+    content = b"ABC"
+    if err:
+        with pytest.raises(Exception):
+            vim_line_end(content, npos, False)
+    else:
+        assert vim_line_end(content, npos, False) == 2

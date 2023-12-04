@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Union, Tuple
 from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE
 from utils import printable, whitespace, next_predicate, prev_predicate, get_chunk
+from utils import vim_word, vim_word_begin, vim_word_end, vim_line_begin, vim_line_end
 from clipboard import clipboard
 
 
@@ -79,58 +80,33 @@ class Action(ABC):
 
 
 class Delete(Action):
-    def _handle_forward(self, arg, line, ipos):
-        assert arg in b'wW$', arg
-        assert 0 <= ipos <= len(line)
-        if ipos == len(line):
-            return []
+    _VF_CAP_OFFSET_LOOKUP = {
+        b"b": (vim_word_begin, False, 0),
+        b"B": (vim_word_begin, True, 0),
+        b"w": (vim_word, False, 0),
+        b"W": (vim_word, True, 0),
+        b"e": (vim_word_end, False, 1),
+        b"E": (vim_word_end, True, 1),
+        b"$": (vim_line_end, False, 1),
+        b"0": (vim_line_begin, False, 0),
+    }
 
-        count = None
-        if arg == b"w":
-            # FIXME: whitespace should not considered as the start of the next word in vim
-            # FIXME: current behaviour is more like 'de' than 'dw'
-            target = get_chunk(line[ipos])
-            predicate = lambda ch: ch not in target
-            new_pos = next_predicate(line, ipos, predicate)
-            count = len(line) - ipos if new_pos == -1 else new_pos - ipos
-        elif arg == b"W":
-            # FIXME: whitespace should not considered as the start of the next word in vim
-            if line[ipos] in whitespace:
-                predicate = lambda ch: ch not in whitespace
-            else:
-                predicate = lambda ch: ch in whitespace
-            new_pos = next_predicate(line, ipos, predicate)
-            count = len(line) - ipos if new_pos == -1 else new_pos - ipos
-        elif arg == b"$":
-            count = len(line) - ipos
+    def act(self, arg: bytes, line: bytes, npos: int) -> ActionOutput:
+        assert 0 <= npos < len(line)
 
-        return self.right(count) + self.delete(count)
-
-    def _handle_backward(self, arg, line, ipos):
-        assert arg in b'b0', arg
-        assert 0 <= ipos <= len(line)
-        if ipos == 0:
-            return []
-
-        if arg == b"b":
-            target = get_chunk(line[ipos - 1])
-            predicate = lambda ch: ch not in target
-            new_pos = prev_predicate(line, ipos - 1, predicate) + 1
-            return self.delete(ipos - new_pos)
-        elif arg == b"0":
-            return self.delete(ipos)
-
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
         # special case for "dd" and "cc"
         if arg.decode() == self.__class__.__name__.lower()[0]:
-            return self.right(len(line) - ipos) + self.delete(len(line))
+            return self.right(len(line) - npos) + self.delete(len(line))
 
-        if arg not in b'wW$0b':
+        if arg not in self._VF_CAP_OFFSET_LOOKUP:
             return []
-        elif arg in b'wW$':
-            return self._handle_forward(arg, line, ipos)
+
+        vf, cap, offset = self._VF_CAP_OFFSET_LOOKUP[arg]
+        count = vf(line, npos, cap) - npos + offset
+        if count > 0:
+            return self.right(count) + self.delete(count)
         else:
-            return self._handle_backward(arg, line, ipos)
+            return self.right(1) + self.delete(abs(count) + 1)
 
 
 class DeleteInBetween(Delete):
