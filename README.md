@@ -147,13 +147,14 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
 - Miscellaneous
     - `Enter`: Sends the current line. Notice that the next prompt will still be in *Normal* mode.
     - `~`: Switch casing of the current character. I.e., change `a` to 'A` and `A` to `a`
+    - `u`: Undo previous change. (TODO)
+    - `<CTRL-r>`: Redo previous change. (TODO)
+    - `.`: Repeat previous change. (TODO)
 
 ## Unsupported Vim Features
 
 Currently, there is no plan to implement
 
 - Any commands with repetitions, e.g., `2w`, `f3a`, `10x`.
-- The undo/repo commands `u`, `<CTRL>r`.
-- The repeat command `.`.
 - Visual mode and commands in visual mode
 - Command-line mode.
