@@ -35,24 +35,27 @@ Environment variables
 
 The project is based on the [`pexpect`](https://pexpect.readthedocs.io/en/stable/) library.
 
-Once `viris` starts, it spins up another process 
-of [InterSystems IRIS](https://docs.intersystems.com/iris20233/csp/docbook/Doc.View.cls?KEY=TOS_Terminal) terminal 
+Once `viris` starts, it spins up another process
+of [InterSystems IRIS](https://docs.intersystems.com/iris20233/csp/docbook/Doc.View.cls?KEY=TOS_Terminal) terminal
 that runs in the background.
 `viris` intercepts user keystrokes, parses them, and passes along to the background `IRIS terminal` process, and renders
 the output of `IRIS terminal` back to the user.
-To parse keystrokes, `viris` maintains an inner state of the current prompt line, position of the cursor, and shape of 
-the cursor (vertical bar for *Insert* mode, rectangular block for *Normal* mode, underscore for *Replace* mode). 
-For example, in *Insert* mode, hitting `<OPTION> + <DELETE>` or `<ALT> + <DELETE>` when the current prompt and cursor 
+To parse keystrokes, `viris` maintains an inner state of the current prompt line, position of the cursor, and shape of
+the cursor (vertical bar for *Insert* mode, rectangular block for *Normal* mode, underscore for *Replace* mode).
+For example, in *Insert* mode, hitting `<OPTION> + <DELETE>` or `<ALT> + <DELETE>` when the current prompt and cursor
 positions is
+
 ```
 USER>set obj = ##class(%Dynam|icObject).%New()     // vertical bar "|" is cursor position
 ```
+
 will send 5 `<DELETE>`s to the backend `IRIS terminal` process and the resulting prompt will be
+
 ```
 USER>set obj = ##class(%|icObject).%New()          // vertical bar "|" is cursor position
 ```
-.
 
+.
 
 ## Supported Vim Modes
 

@@ -4,7 +4,7 @@ from string import ascii_lowercase, ascii_uppercase
 from typing import List, Union, Tuple
 from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE
 from utils import printable
-from utils import vim_word, vim_word_begin, vim_word_end, vim_line_begin, vim_line_end
+from utils import vim_word, vim_word_begin, vim_word_end, vim_word_boundary, vim_line_begin, vim_line_end
 from utils import vim_find, vim_till
 from clipboard import clipboard
 
@@ -53,6 +53,7 @@ class ActionEnum(Enum):  # vim-like actions
     df = b"df"  # delete find
     dF = b"dF"  # delete find (backwards)
     x = b"x"  # remove character
+
     c = b"c"  # change
     ci = b"ci"  # change in-between
     ct = b"ct"  # change till
@@ -60,6 +61,13 @@ class ActionEnum(Enum):  # vim-like actions
     cf = b"cf"  # change find
     cF = b"cF"  # change find (backwards)
     s = b"s"  # substitute character
+
+    y = b"y"  # yank
+    yi = b"yi"  # yank in-between
+    yt = b"yt"  # yank till
+    yT = b"yT"  # yank till (backwards)
+    yf = b"yf"  # yank find
+    yF = b"yF"  # yank find (backwards)
 
     i = b"i"  # insert
     a = b"a"  # append
@@ -200,6 +208,39 @@ def __convert_delete_to_change(D):
     return C
 
 
+def __convert_delete_to_yank(D):
+    assert "Delete" in D.__name__
+
+    class Y(D):
+        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+            # print("yanking")
+            actions = D.act(self, arg, line, pos)
+            # print(actions)
+
+            for n_rights, op in enumerate(actions):
+                if op != Op.RIGHT:
+                    break
+            else:
+                n_rights = len(actions)
+
+            for n_deletes, op in enumerate(actions[n_rights:]):
+                if op != Op.DELETE:
+                    break
+            else:
+                n_deletes = len(actions) - n_rights
+
+            right = pos + n_rights
+            left = right - n_deletes
+            if left != right:
+                clipboard.copy(line[left: right])
+
+            return []
+
+    Y.__name__ = D.__name__.replace("Delete", "Yank")
+
+    return Y
+
+
 class Insert(Action):
     NO_ARG = True
 
@@ -284,12 +325,22 @@ __lookup = {
     ActionEnum.df: DeleteFind,
     ActionEnum.dF: DeleteFindBackwards,
     ActionEnum.x: DeleteOneChar,
+
     ActionEnum.c: __convert_delete_to_change(Delete),
     ActionEnum.ci: __convert_delete_to_change(DeleteInBetween),
     ActionEnum.ct: __convert_delete_to_change(DeleteTill),
     ActionEnum.cT: __convert_delete_to_change(DeleteTillBackwards),
     ActionEnum.cf: __convert_delete_to_change(DeleteFind),
     ActionEnum.cF: __convert_delete_to_change(DeleteFindBackwards),
+    ActionEnum.s: __convert_delete_to_change(DeleteOneChar),
+
+    ActionEnum.y: __convert_delete_to_yank(Delete),
+    ActionEnum.yi: __convert_delete_to_yank(DeleteInBetween),
+    ActionEnum.yt: __convert_delete_to_yank(DeleteTill),
+    ActionEnum.yT: __convert_delete_to_yank(DeleteTillBackwards),
+    ActionEnum.yf: __convert_delete_to_yank(DeleteFind),
+    ActionEnum.yF: __convert_delete_to_yank(DeleteFindBackwards),
+
     ActionEnum.i: Insert,
     ActionEnum.a: Append,
     ActionEnum.I: InsertAtLineStart,
