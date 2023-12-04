@@ -81,10 +81,10 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
       a single word.
     - `0`: Navigate to the beginning of line.
     - `$`: Navigate to the end of line.
-    - `f<char>`: Navigate to the next occurrence of `<char>` (TODO)
-    - `F<char>`: Navigate to the previous occurrence of `<char>` (TODO)
-    - `t<char>`: Navigate to the character before the next occurrence of `<char>` (TODO)
-    - `T<char>`: Navigate to the character after the previous occurrence of `<char>` (TODO)
+    - `f<char>`: Navigate to the next occurrence of `<char>`
+    - `F<char>`: Navigate to the previous occurrence of `<char>`
+    - `t<char>`: Navigate to the character before the next occurrence of `<char>`
+    - `T<char>`: Navigate to the character after the previous occurrence of `<char>`
     - `%`: Navigate between matching pairs of parentheses, square brackets, angle brackets, or curly braces. (TODO)
 - Deletion:
     - `dw`/`dW`: Delete until the next beginning-of-word.

@@ -232,3 +232,71 @@ def test_vim_line_begin(npos, err):
             vim_line_end(content, npos, False)
     else:
         assert vim_line_end(content, npos, False) == 2
+
+
+@pytest.mark.parametrize(
+    argnames=['npos', 'expected', 'capital'],
+    argvalues=[
+        # find forward
+        [-1, Exception, False],
+        [0, 1, False],  # "|A|BCABC"
+        [1, 4, False],  # "A|B|CABC"
+        [2, 4, False],  # "AB|C|ABC"
+        [3, 4, False],  # "ABC|A|BC"
+        [4, 6, False],  # "ABCA|B|C"
+        [5, 6, False],  # "ABCAB|C|"
+        [6, Exception, False],
+        # find backward
+        [-1, Exception, True],
+        [0, -1, True],  # "|A|BCABC"
+        [1, -1, True],  # "A|B|CABC"
+        [2, 1, True],  # "AB|C|ABC"
+        [3, 1, True],  # "ABC|A|BC"
+        [4, 1, True],  # "ABCA|B|C"
+        [5, 4, True],  # "ABCAB|C|"
+        [6, Exception, True],
+    ]
+)
+def test_vim_find(npos, expected, capital):
+    from utils import vim_find
+    content = b"ABCABC"
+    needle = b"B"
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            vim_find(content, npos, needle, capital)
+    else:
+        assert vim_find(content, npos, needle, capital) == expected
+
+
+@pytest.mark.parametrize(
+    argnames=['npos', 'expected', 'capital'],
+    argvalues=[
+        # find forward
+        [-1, Exception, False],
+        [0, 0, False],  # "|A|BCABC"
+        [1, 3, False],  # "A|B|CABC"
+        [2, 3, False],  # "AB|C|ABC"
+        [3, 3, False],  # "ABC|A|BC"
+        [4, 6, False],  # "ABCA|B|C"
+        [5, 6, False],  # "ABCAB|C|"
+        [6, Exception, False],
+        # find backward
+        [-1, Exception, True],
+        [0, -1, True],  # "|A|BCABC"
+        [1, -1, True],  # "A|B|CABC"
+        [2, 2, True],  # "AB|C|ABC"
+        [3, 2, True],  # "ABC|A|BC"
+        [4, 2, True],  # "ABCA|B|C"
+        [5, 5, True],  # "ABCAB|C|"
+        [6, Exception, True],
+    ]
+)
+def test_vim_till(npos, expected, capital):
+    from utils import vim_till
+    content = b"ABCABC"
+    needle = b"B"
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            vim_till(content, npos, needle, capital)
+    else:
+        assert vim_till(content, npos, needle, capital) == expected

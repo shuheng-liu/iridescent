@@ -165,6 +165,34 @@ def vim_line_end(content, npos, capital=False):
 
 
 def vim_line_begin(content, npos, capital=False):
+    r"""Return the position of begin of line"""
     assert capital is False
     assert 0 <= npos < len(content)
     return 0
+
+
+def vim_find(content: bytes, npos: int, ch: bytes, capital: bool = False):
+    r"""Return the position of prev/next occurrence of ch, if exists. Otherwise, return len(content) or -1"""
+    assert 0 <= npos < len(content)
+
+    try:
+        if capital:
+            output = content.rindex(ch, 0, npos)
+        else:
+            output = content.index(ch, npos + 1)
+    except ValueError:
+        output = -1 if capital else len(content)
+
+    return output
+
+
+def vim_till(content: bytes, npos: int, ch: bytes, capital: bool = False):
+    r"""
+    Return the position before the next occurrence of ch, if exists.
+    Or return the position after the previous occurrence of ch, if exists.
+    In nonexistent, return len(content) or -1.
+    """
+    pos = vim_find(content, npos, ch, capital)
+    if 0 <= pos < len(content):
+        return pos + (1 if capital else -1)
+    return pos
