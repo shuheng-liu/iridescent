@@ -125,7 +125,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
 - Copy/Paste:
     - A text segment is automatically copied to the internal clipboard once it's deleted by a *Delete* or *Change*
       command.
-    - You can optionally copy something without deleting them with the yank commands: (TODO)
+    - You can optionally copy something without deleting them with the yank commands:
       `yw`, `yW`, `ye`, `yE`, `yb`, `yB`, `yy`, `y0`, `y$`, `yt<char>`, `yT<char>`, `yf<char>`, `yF<char>`, `yi<char>`
     - To paste the content of the clipboard use `p` (paste to the right of the current block-shaped cursor) or `P` (
       paste to the left of the current block-shaped cursor)
@@ -146,7 +146,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
       string blindly.
 - Miscellaneous
     - `Enter`: Sends the current line. Notice that the next prompt will still be in *Normal* mode.
-    - `~`: Switch casing of the current character. I.e., change `a` to 'A` and `A` to `a`
+    - `~`: Switch casing of the current character. I.e., change `a` to `A` and `A` to `a`
     - `u`: Undo previous change. (TODO)
     - `<CTRL-r>`: Redo previous change. (TODO)
     - `.`: Repeat previous change. (TODO)
