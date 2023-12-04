@@ -107,6 +107,9 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
         - double quotes `"..."`: if `<char>` is double quote `"`
         - commas `,...,` if `<char>` is comma `,` (standard Vim doesn't support this)
         - spaces <code>&nbsp;...&nbsp;</code> if `<char>` is space ` ` (standard Vim doesn't support this)
+    - `diw` and `diW`: As a special case to the above, `diw` deletes the word under cursor.
+      Capital `w` treats consecutive non-whitespace characters as a word.
+      If the current character under cursor is a whitespace, consecutive whitespaces are considered a word.
     - `x`: Delete the character under cursor
 - Change:
     - The change commands are almost identical to the delete commands listed above.

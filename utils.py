@@ -95,6 +95,26 @@ def _get_group(byte, capital):
     raise ValueError("Invalid byte: " + repr(byte))
 
 
+def vim_word_boundary(content, npos, capital=False):
+    assert 0 <= npos < len(content)
+    grp = _get_group(content[npos], capital)
+
+    end, start = npos, npos
+    while True:
+        end += 1
+        if end == len(content) or _get_group(content[end], capital) != grp:
+            end -= 1
+            break
+
+    while True:
+        start -= 1
+        if start == -1 or _get_group(content[start], capital) != grp:
+            start += 1
+            break
+
+    return start, end
+
+
 def vim_word(content, npos, capital=False):  # emulate "w"/"W" in vim
     r"""Return the beginning of the next word if there is one. Otherwise, return len(content)."""
     assert 0 <= npos < len(content)

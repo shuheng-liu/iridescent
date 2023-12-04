@@ -124,9 +124,9 @@ class Delete(Action):
 
 class DeleteInBetween(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-        if arg == b'w':
-            # HACK: think twice before changing it
-            return Delete.act(self, b"w", line, pos) + Delete.act(self, b"b", line, pos)
+        if arg == b'w' or b'W':
+            begin, end = vim_word_boundary(line, pos, capital=(arg == b'W'))
+            return self.right(end - pos + 1) + self.delete(end - begin + 1)
 
         pairs = [b'()', b'[]', b'{}', b'<>', b'``', b"''", b'""', b',,', b'  ']
         for pair in pairs:
