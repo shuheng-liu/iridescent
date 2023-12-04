@@ -46,6 +46,11 @@ ActionOutput = Union[
 
 
 class ActionEnum(Enum):  # vim-like actions
+    f = b"f"  # find
+    t = b"t"  # till
+    F = b"F"  # find (backwards)
+    T = b"T"  # till (backwards)
+
     d = b"d"  # delete
     di = b"di"  # delete in-between
     dt = b"dt"  # delete till
@@ -98,6 +103,38 @@ class Action(ABC):
     @abstractmethod
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         pass
+
+
+class Find(Action):
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        new = vim_find(line, pos, arg, capital=False)
+        if not 0 <= new < len(line):
+            return []
+        return self.right(new - pos)
+
+
+class Till(Action):
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        new = vim_till(line, pos, arg, capital=False)
+        if not 0 <= new < len(line):
+            return []
+        return self.right(new - pos)
+
+
+class FindBackwards(Action):
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        new = vim_find(line, pos, arg, capital=True)
+        if not 0 <= new < len(line):
+            return []
+        return self.left(pos - new)
+
+
+class TillBackwards(Action):
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        new = vim_till(line, pos, arg, capital=True)
+        if not 0 <= new < len(line):
+            return []
+        return self.left(pos - new)
 
 
 class Delete(Action):
@@ -318,6 +355,11 @@ class SwitchCasing(Action):
 
 
 __lookup = {
+    ActionEnum.f: Find,
+    ActionEnum.t: Till,
+    ActionEnum.F: FindBackwards,
+    ActionEnum.T: TillBackwards,
+
     ActionEnum.d: Delete,
     ActionEnum.di: DeleteInBetween,
     ActionEnum.dt: DeleteTill,
