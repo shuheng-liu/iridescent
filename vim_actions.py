@@ -160,16 +160,17 @@ class Delete(Action):
             return []
 
         vf, cap, offset = self._VF_CAP_OFFSET_LOOKUP[arg]
-        count = vf(line, pos, cap) - pos + offset
+        new = vf(line, pos, cap) + offset
+        count = min(max(0, new), len(line)) - pos
         if count > 0:
             return self.right(count) + self.delete(count)
         else:
-            return self.right(1) + self.delete(abs(count) + 1)
+            return self.delete(abs(count))
 
 
 class DeleteInBetween(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-        if arg == b'w' or b'W':
+        if arg == b'w' or arg == b'W':
             begin, end = vim_word_boundary(line, pos, capital=(arg == b'W'))
             return self.right(end - pos + 1) + self.delete(end - begin + 1)
 
@@ -182,7 +183,7 @@ class DeleteInBetween(Delete):
             return []
 
         try:
-            left = line.rindex(l, 0, pos)
+            left = line.rindex(l, 0, pos+1)
             right = line.index(r, pos)
             return self.right(right - pos) + self.delete(right - left - 1)
         except ValueError:

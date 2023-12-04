@@ -8,32 +8,58 @@ from vim_actions import Op
         # text object = 'w'
         (b'w', 0, 1, 1),  # "|I'm p.name !"
         (b'w', 1, 1, 1),  # "I|'m p.name !"
-        (b'w', 2, 1, 1),  # "I'|m p.name !"
+        (b'w', 2, 2, 2),  # "I'|m p.name !"
         (b'w', 3, 1, 1),  # "I'm| p.name !"
         (b'w', 4, 1, 1),  # "I'm |p.name !"
         (b'w', 5, 1, 1),  # "I'm p|.name !"
-        (b'w', 6, 4, 4),  # "I'm p.|name !"
-        (b'w', 7, 3, 3),  # "I'm p.n|ame !"
-        (b'w', 8, 2, 2),  # "I'm p.na|me !"
-        (b'w', 9, 1, 1),  # "I'm p.nam|e !"
+        (b'w', 6, 5, 5),  # "I'm p.|name !"
+        (b'w', 7, 4, 4),  # "I'm p.n|ame !"
+        (b'w', 8, 3, 3),  # "I'm p.na|me !"
+        (b'w', 9, 2, 2),  # "I'm p.nam|e !"
         (b'w', 10, 1, 1),  # "I'm p.name| !"
         (b'w', 11, 1, 1),  # "I'm p.name |!"
-        (b'w', 12, 0, 0),  # "I'm p.name !|"
 
         # same as above, but text object = 'W'
-        (b'W', 0, 3, 3),  # "|I'm p.name !"
-        (b'W', 1, 2, 2),  # "I|'m p.name !"
-        (b'W', 2, 1, 1),  # "I'|m p.name !"
+        (b'W', 0, 4, 4),  # "|I'm p.name !"
+        (b'W', 1, 3, 3),  # "I|'m p.name !"
+        (b'W', 2, 2, 2),  # "I'|m p.name !"
         (b'W', 3, 1, 1),  # "I'm| p.name !"
-        (b'W', 4, 6, 6),  # "I'm |p.name !"
-        (b'W', 5, 5, 5),  # "I'm p|.name !"
-        (b'W', 6, 4, 4),  # "I'm p.|name !"
-        (b'W', 7, 3, 3),  # "I'm p.n|ame !"
-        (b'W', 8, 2, 2),  # "I'm p.na|me !"
-        (b'W', 9, 1, 1),  # "I'm p.nam|e !"
+        (b'W', 4, 7, 7),  # "I'm |p.name !"
+        (b'W', 5, 6, 6),  # "I'm p|.name !"
+        (b'W', 6, 5, 5),  # "I'm p.|name !"
+        (b'W', 7, 4, 4),  # "I'm p.n|ame !"
+        (b'W', 8, 3, 3),  # "I'm p.na|me !"
+        (b'W', 9, 2, 2),  # "I'm p.nam|e !"
         (b'W', 10, 1, 1),  # "I'm p.name| !"
         (b'W', 11, 1, 1),  # "I'm p.name |!"
-        (b'W', 12, 0, 0),  # "I'm p.name !|"
+
+        # same as above, but text object = 'e'
+        (b'e', 0, 2, 2),  # "|I'm p.name !"
+        (b'e', 1, 2, 2),  # "I|'m p.name !"
+        (b'e', 2, 3, 3),  # "I'|m p.name !"
+        (b'e', 3, 2, 2),  # "I'm| p.name !"
+        (b'e', 4, 2, 2),  # "I'm |p.name !"
+        (b'e', 5, 5, 5),  # "I'm p|.name !"
+        (b'e', 6, 4, 4),  # "I'm p.|name !"
+        (b'e', 7, 3, 3),  # "I'm p.n|ame !"
+        (b'e', 8, 2, 2),  # "I'm p.na|me !"
+        (b'e', 9, 3, 3),  # "I'm p.nam|e !"
+        (b'e', 10, 2, 2),  # "I'm p.name| !"
+        (b'e', 11, 1, 1),  # "I'm p.name |!"
+
+        # same as above, but text object = 'E'
+        (b'E', 0, 3, 3),  # "|I'm p.name !"
+        (b'E', 1, 2, 2),  # "I|'m p.name !"
+        (b'E', 2, 8, 8),  # "I'|m p.name !"
+        (b'E', 3, 7, 7),  # "I'm| p.name !"
+        (b'E', 4, 6, 6),  # "I'm |p.name !"
+        (b'E', 5, 5, 5),  # "I'm p|.name !"
+        (b'E', 6, 4, 4),  # "I'm p.|name !"
+        (b'E', 7, 3, 3),  # "I'm p.n|ame !"
+        (b'E', 8, 2, 2),  # "I'm p.na|me !"
+        (b'E', 9, 3, 3),  # "I'm p.nam|e !"
+        (b'E', 10, 2, 2),  # "I'm p.name| !"
+        (b'E', 11, 1, 1),  # "I'm p.name |!"
 
         # same as above, but text object = '$'
         (b'$', 0, 12, 12),  # "|I'm p.name !"
@@ -48,22 +74,34 @@ from vim_actions import Op
         (b'$', 9, 3, 3),  # "I'm p.nam|e !"
         (b'$', 10, 2, 2),  # "I'm p.name| !"
         (b'$', 11, 1, 1),  # "I'm p.name |!"
-        (b'$', 12, 0, 0),  # "I'm p.name !|"
 
         # same as above, but text object = 'b'
         (b'b', 0, 0, 0),  # "|I'm p.name !"
         (b'b', 1, 0, 1),  # "I|'m p.name !"
         (b'b', 2, 0, 1),  # "I'|m p.name !"
         (b'b', 3, 0, 1),  # "I'm| p.name !"
-        (b'b', 4, 0, 1),  # "I'm |p.name !"
+        (b'b', 4, 0, 2),  # "I'm |p.name !"
         (b'b', 5, 0, 1),  # "I'm p|.name !"
         (b'b', 6, 0, 1),  # "I'm p.|name !"
         (b'b', 7, 0, 1),  # "I'm p.n|ame !"
         (b'b', 8, 0, 2),  # "I'm p.na|me !"
         (b'b', 9, 0, 3),  # "I'm p.nam|e !"
         (b'b', 10, 0, 4),  # "I'm p.name| !"
-        (b'b', 11, 0, 1),  # "I'm p.name |!"
-        (b'b', 12, 0, 1),  # "I'm p.name !|"
+        (b'b', 11, 0, 5),  # "I'm p.name |!"
+
+        # same as above, but text object = 'B'
+        (b'B', 0, 0, 0),  # "|I'm p.name !"
+        (b'B', 1, 0, 1),  # "I|'m p.name !"
+        (b'B', 2, 0, 2),  # "I'|m p.name !"
+        (b'B', 3, 0, 3),  # "I'm| p.name !"
+        (b'B', 4, 0, 4),  # "I'm |p.name !"
+        (b'B', 5, 0, 1),  # "I'm p|.name !"
+        (b'B', 6, 0, 2),  # "I'm p.|name !"
+        (b'B', 7, 0, 3),  # "I'm p.n|ame !"
+        (b'B', 8, 0, 4),  # "I'm p.na|me !"
+        (b'B', 9, 0, 5),  # "I'm p.nam|e !"
+        (b'B', 10, 0, 6),  # "I'm p.name| !"
+        (b'B', 11, 0, 7),  # "I'm p.name |!"
 
         # same as above, but text object = '0'
         (b'0', 0, 0, 0),  # "|I'm p.name !"
@@ -78,7 +116,6 @@ from vim_actions import Op
         (b'0', 9, 0, 9),  # "I'm p.nam|e !"
         (b'0', 10, 0, 10),  # "I'm p.name| !"
         (b'0', 11, 0, 11),  # "I'm p.name |!"
-        (b'0', 12, 0, 12),  # "I'm p.name !|"
 
         # same as above, but text object = 'd'
         (b'd', 0, 12, 12),  # "|I'm p.name !"
@@ -93,7 +130,6 @@ from vim_actions import Op
         (b'd', 9, 3, 12),  # "I'm p.nam|e !"
         (b'd', 10, 2, 12),  # "I'm p.name| !"
         (b'd', 11, 1, 12),  # "I'm p.name |!"
-        (b'd', 12, 0, 12),  # "I'm p.name !|"
     ]
 )
 def test_delete(arg, pos, exp_right, exp_delete):
@@ -108,20 +144,20 @@ def test_delete(arg, pos, exp_right, exp_delete):
     argnames=['arg', 'pos', 'exp_right', 'exp_delete'],
     argvalues=[
         # text object = '('
-        (b'(', 0, 0, 0),  # '|(hey)'
+        (b'(', 0, 4, 3),  # '|(hey)'
         (b'(', 1, 3, 3),  # '(|hey)'
         (b'(', 2, 2, 3),  # '(h|ey)'
         (b'(', 3, 1, 3),  # '(he|y)'
         (b'(', 4, 0, 3),  # '(hey|)'
 
         # same as above, except text object = ')'
-        (b')', 0, 0, 0),  # '|(hey)'
+        (b')', 0, 4, 3),  # '|(hey)'
         (b')', 1, 3, 3),  # '(|hey)'
         (b')', 2, 2, 3),  # '(h|ey)'
         (b')', 3, 1, 3),  # '(he|y)'
         (b')', 4, 0, 3),  # '(hey|)'
 
-        # same as above, except text object is nonexistent, should always fail
+        # # same as above, except text object is nonexistent, should always fail
         (b'[', 0, 0, 0),  # '|(hey)'
         (b'{', 1, 0, 0),  # '(|hey)'
         (b'.', 2, 0, 0),  # '(h|ey)'
@@ -152,14 +188,14 @@ def test_delete_in_between(arg, pos, exp_right, exp_delete):
         [b"A", 2, 0],  # "AB|CDBCD"
         [b"Z", 2, 0],  # "AB|CDBCD"
         [b"B", 2, 2],  # "AB|CDBCD"
-        [b"C", 2, 0],  # "AB|CDBCD"
+        [b"C", 2, 3],  # "AB|CDBCD"
         [b"D", 2, 1],  # "AB|CDBCD"
 
-        [b"A", 7, 0],  # "ABCDBCD|"
-        [b"Z", 7, 0],  # "ABCDBCD|"
-        [b"B", 7, 0],  # "ABCDBCD|"
-        [b"C", 7, 0],  # "ABCDBCD|"
-        [b"D", 7, 0],  # "ABCDBCD|"
+        [b"A", 6, 0],  # "ABCDBC|D"
+        [b"Z", 6, 0],  # "ABCDBC|D"
+        [b"B", 6, 0],  # "ABCDBC|D"
+        [b"C", 6, 0],  # "ABCDBC|D"
+        [b"D", 6, 0],  # "ABCDBC|D"
     ]
 )
 def test_delete_till(arg, pos, exp_count):
