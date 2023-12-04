@@ -2,8 +2,9 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from typing import List, Union, Tuple
 from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE
-from utils import printable, whitespace, next_predicate, prev_predicate, get_chunk
+from utils import printable
 from utils import vim_word, vim_word_begin, vim_word_end, vim_line_begin, vim_line_end
+from utils import vim_find, vim_till
 from clipboard import clipboard
 
 
@@ -44,10 +45,16 @@ class ActionEnum(Enum):  # vim-like actions
     d = b"d"  # delete
     di = b"di"  # delete in-between
     dt = b"dt"  # delete till
+    dT = b"dT"  # delete till (backwards)
+    df = b"df"  # delete find
+    dF = b"dF"  # delete find (backwards)
     x = b"x"  # remove character
     c = b"c"  # change
     ci = b"ci"  # change in-between
     ct = b"ct"  # change till
+    cT = b"cT"  # change till (backwards)
+    cf = b"cf"  # change find
+    cF = b"cF"  # change find (backwards)
     s = b"s"  # substitute character
 
     i = b"i"  # insert
@@ -133,12 +140,38 @@ class DeleteInBetween(Delete):
 
 class DeleteTill(Delete):
     def act(self, arg: bytes, line: bytes, ipos: int) -> List[Op]:
-        try:
-            new_pos = line.index(arg, ipos)
-            count = new_pos - ipos
-            return self.right(count) + self.delete(count)
-        except ValueError:
+        new_pos = vim_till(line, ipos, arg, False)
+        if not 0 <= new_pos < len(line):
             return []
+        count = new_pos - ipos + 1
+        return self.right(count) + self.delete(count)
+
+
+class DeleteTillBackwards(Delete):
+    def act(self, arg: bytes, line: bytes, ipos: int) -> List[Op]:
+        new_pos = vim_till(line, ipos, arg, True)
+        if not 0 <= new_pos < len(line):
+            return []
+        count = ipos - new_pos + 1
+        return self.right(1) + self.delete(count)
+
+
+class DeleteFind(Delete):
+    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+        new_pos = vim_find(line, ipos, arg, False)
+        if not 0 <= new_pos < len(line):
+            return []
+        count = new_pos - ipos + 1
+        return self.right(count) + self.delete(count)
+
+
+class DeleteFindBackwards(Delete):
+    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+        new_pos = vim_find(line, ipos, arg, True)
+        if not 0 <= new_pos < len(line):
+            return []
+        count = ipos - new_pos + 1
+        return self.right(1) + self.delete(count)
 
 
 class DeleteOneChar(Action):
@@ -229,11 +262,16 @@ __lookup = {
     ActionEnum.d: Delete,
     ActionEnum.di: DeleteInBetween,
     ActionEnum.dt: DeleteTill,
+    ActionEnum.dT: DeleteTillBackwards,
+    ActionEnum.df: DeleteFind,
+    ActionEnum.dF: DeleteFindBackwards,
     ActionEnum.x: DeleteOneChar,
     ActionEnum.c: __convert_delete_to_change(Delete),
     ActionEnum.ci: __convert_delete_to_change(DeleteInBetween),
     ActionEnum.ct: __convert_delete_to_change(DeleteTill),
-    ActionEnum.s: __convert_delete_to_change(DeleteOneChar),
+    ActionEnum.cT: __convert_delete_to_change(DeleteTillBackwards),
+    ActionEnum.cf: __convert_delete_to_change(DeleteFind),
+    ActionEnum.cF: __convert_delete_to_change(DeleteFindBackwards),
     ActionEnum.i: Insert,
     ActionEnum.a: Append,
     ActionEnum.I: InsertAtLineStart,

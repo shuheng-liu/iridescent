@@ -94,7 +94,9 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `d0`: Delete until beginning of the line.
     - `d$`: Delete until end of the line.
     - `dt<char>`: Delete until the next occurrence of `<char>` (exclusive).
+    - `dT<char>`: Delete backwards until the next occurrence of `<char>` (exclusive).
     - `df<char>`: Delete until the next occurrence of `<char>` (inclusive).
+    - `dF<char>`: Delete backwards until the next occurrence of `<char>` (inclusive).
     - `di<char>`: Delete everything within the enclosing pair of
         - parentheses `(...)`: if `<char>` is either `(` or `)`
         - square brackets `[...]`: if `<char>` is either `[` or `]`
@@ -110,7 +112,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - The change commands are almost identical to the delete commands listed above.
       The difference is that a change command will exit *Normal* mode and enter *Insert* mode after deleting characters.
     - The keystrokes for a change command is obtained by changing the leading `d` to `c`.
-        - `cw`, `cW`, `ce`, `cE`, `cb`, `cB`, `c0`, `c$`, `ct<char>`, `cf<char>`, `ci<char>`
+        - `cw`, `cW`, `ce`, `cE`, `cb`, `cB`, `c0`, `c$`, `ct<char>`, `cT<char>`, `cf<char>`, `cF<char>`, `ci<char>`
     - Special cases are:
         - `cc`: Delete the current line and set to insert mode.
         - `s`: Delete the character under cursor and set to insert mode.
@@ -118,7 +120,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - A text segment is automatically copied to the internal clipboard once it's deleted by a *Delete* or *Change*
       command.
     - You can optionally copy something without deleting them with the yank commands: (TODO)
-      `yw`, `yW`, `ye`, `yE`, `yb`, `yB`, `yy`, `y0`, `y$`, `yt<char>`, `yf<char>`, `yi<char>`
+      `yw`, `yW`, `ye`, `yE`, `yb`, `yB`, `yy`, `y0`, `y$`, `yt<char>`, `yT<char>`, `yf<char>`, `yF<char>`, `yi<char>`
     - To paste the content of the clipboard use `p` (paste to the right of the current block-shaped cursor) or `P` (
       paste to the left of the current block-shaped cursor)
 - Switch between modes:
