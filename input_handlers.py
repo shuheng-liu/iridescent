@@ -206,9 +206,12 @@ class VimActionHandler(NormalModeHandler):
                 clipboard.prepend(self.filter_obj.current_byte)
                 self.filter_obj.delete()
                 output += DELETE
-            elif isinstance(op, bytes) and op.decode().isprintable():
-                self.filter_obj.move_cursor_right(op)
-                output += op
+            elif isinstance(op, (int, bytes)):
+                if isinstance(op, int):
+                    op = op.to_bytes((op.bit_length() + 7) // 8, "big")
+                if op.decode().isprintable():
+                    self.filter_obj.move_cursor_right(op)
+                    output += op
 
         return output
 

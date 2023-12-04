@@ -1,11 +1,15 @@
 from enum import Enum
 from abc import ABC, abstractmethod
+from string import ascii_lowercase, ascii_uppercase
 from typing import List, Union, Tuple
 from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE
 from utils import printable
 from utils import vim_word, vim_word_begin, vim_word_end, vim_line_begin, vim_line_end
 from utils import vim_find, vim_till
 from clipboard import clipboard
+
+ascii_lowercase = ascii_lowercase.encode()
+ascii_uppercase = ascii_uppercase.encode()
 
 
 class Op(Enum):
@@ -67,6 +71,8 @@ class ActionEnum(Enum):  # vim-like actions
 
     r = b"r"  # replace the character under cursor
     R = b"R"  # change vim to replace mode
+
+    tilde = b"~"  # switch casing
 
 
 class Action(ABC):
@@ -258,6 +264,18 @@ class EnterReplaceMode(Action):
         return [], [SetReplace()]
 
 
+class SwitchCasing(Action):
+    NO_ARG = True
+    CASE_MAP = {k: v for k, v in zip(ascii_lowercase + ascii_uppercase, ascii_uppercase + ascii_lowercase)}
+
+    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+        assert arg is None
+        ch = line[ipos]
+        if ch not in self.CASE_MAP:
+            return []
+        return self.right(1) + self.delete(1) + [self.CASE_MAP[ch]]
+
+
 __lookup = {
     ActionEnum.d: Delete,
     ActionEnum.di: DeleteInBetween,
@@ -280,6 +298,7 @@ __lookup = {
     ActionEnum.P: PasteBefore,
     ActionEnum.r: ReplaceCharacter,
     ActionEnum.R: EnterReplaceMode,
+    ActionEnum.tilde: SwitchCasing,
 }
 
 
