@@ -88,7 +88,7 @@ class Action(ABC):
         return [Op.DELETE] * n
 
     @abstractmethod
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         pass
 
 
@@ -104,18 +104,18 @@ class Delete(Action):
         b"0": (vim_line_begin, False, 0),
     }
 
-    def act(self, arg: bytes, line: bytes, npos: int) -> ActionOutput:
-        assert 0 <= npos < len(line)
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        assert 0 <= pos < len(line)
 
         # special case for "dd" and "cc"
         if arg.decode() == self.__class__.__name__.lower()[0]:
-            return self.right(len(line) - npos) + self.delete(len(line))
+            return self.right(len(line) - pos) + self.delete(len(line))
 
         if arg not in self._VF_CAP_OFFSET_LOOKUP:
             return []
 
         vf, cap, offset = self._VF_CAP_OFFSET_LOOKUP[arg]
-        count = vf(line, npos, cap) - npos + offset
+        count = vf(line, pos, cap) - pos + offset
         if count > 0:
             return self.right(count) + self.delete(count)
         else:
@@ -123,10 +123,10 @@ class Delete(Action):
 
 
 class DeleteInBetween(Delete):
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg == b'w':
             # HACK: think twice before changing it
-            return Delete.act(self, b"w", line, ipos) + Delete.act(self, b"b", line, ipos)
+            return Delete.act(self, b"w", line, pos) + Delete.act(self, b"b", line, pos)
 
         pairs = [b'()', b'[]', b'{}', b'<>', b'``', b"''", b'""', b',,', b'  ']
         for pair in pairs:
@@ -137,53 +137,53 @@ class DeleteInBetween(Delete):
             return []
 
         try:
-            left = line.rindex(l, 0, ipos)
-            right = line.index(r, ipos)
-            return self.right(right - ipos) + self.delete(right - left - 1)
+            left = line.rindex(l, 0, pos)
+            right = line.index(r, pos)
+            return self.right(right - pos) + self.delete(right - left - 1)
         except ValueError:
             return []
 
 
 class DeleteTill(Delete):
-    def act(self, arg: bytes, line: bytes, ipos: int) -> List[Op]:
-        new_pos = vim_till(line, ipos, arg, False)
+    def act(self, arg: bytes, line: bytes, pos: int) -> List[Op]:
+        new_pos = vim_till(line, pos, arg, False)
         if not 0 <= new_pos < len(line):
             return []
-        count = new_pos - ipos + 1
+        count = new_pos - pos + 1
         return self.right(count) + self.delete(count)
 
 
 class DeleteTillBackwards(Delete):
-    def act(self, arg: bytes, line: bytes, ipos: int) -> List[Op]:
-        new_pos = vim_till(line, ipos, arg, True)
+    def act(self, arg: bytes, line: bytes, pos: int) -> List[Op]:
+        new_pos = vim_till(line, pos, arg, True)
         if not 0 <= new_pos < len(line):
             return []
-        count = ipos - new_pos + 1
+        count = pos - new_pos + 1
         return self.right(1) + self.delete(count)
 
 
 class DeleteFind(Delete):
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
-        new_pos = vim_find(line, ipos, arg, False)
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        new_pos = vim_find(line, pos, arg, False)
         if not 0 <= new_pos < len(line):
             return []
-        count = new_pos - ipos + 1
+        count = new_pos - pos + 1
         return self.right(count) + self.delete(count)
 
 
 class DeleteFindBackwards(Delete):
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
-        new_pos = vim_find(line, ipos, arg, True)
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        new_pos = vim_find(line, pos, arg, True)
         if not 0 <= new_pos < len(line):
             return []
-        count = ipos - new_pos + 1
+        count = pos - new_pos + 1
         return self.right(1) + self.delete(count)
 
 
 class DeleteOneChar(Action):
     NO_ARG = True
 
-    def act(self, arg, line, ipos):
+    def act(self, arg, line, pos):
         assert arg is None
         return self.right(1) + self.delete(1)
 
@@ -192,8 +192,8 @@ def __convert_delete_to_change(D):
     assert "Delete" in D.__name__
 
     class C(D):
-        def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
-            return D.act(self, arg, line, ipos), [SetInsert()]
+        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+            return D.act(self, arg, line, pos), [SetInsert()]
 
     C.__name__ = D.__name__.replace("Delete", "Change")
 
@@ -203,7 +203,7 @@ def __convert_delete_to_change(D):
 class Insert(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [], [SetInsert()]
 
@@ -211,15 +211,15 @@ class Insert(Action):
 class InsertAtLineStart(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.left(ipos), [SetInsert()]
+        return self.left(pos), [SetInsert()]
 
 
 class Append(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return self.right(1), [SetInsert()]
 
@@ -227,15 +227,15 @@ class Append(Action):
 class AppendAtLineEnd(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.right(len(line) - ipos), [SetInsert()]
+        return self.right(len(line) - pos), [SetInsert()]
 
 
 class PasteBefore(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [clipboard.paste()]
 
@@ -243,13 +243,13 @@ class PasteBefore(Action):
 class PasteAfter(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [Op.RIGHT, clipboard.paste(), Op.LEFT]
 
 
 class ReplaceCharacter(Action):
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg not in printable or arg == "\n":
             return []
 
@@ -259,7 +259,7 @@ class ReplaceCharacter(Action):
 class EnterReplaceMode(Action):
     NO_ARG = True
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [], [SetReplace()]
 
@@ -268,9 +268,9 @@ class SwitchCasing(Action):
     NO_ARG = True
     CASE_MAP = {k: v for k, v in zip(ascii_lowercase + ascii_uppercase, ascii_uppercase + ascii_lowercase)}
 
-    def act(self, arg: bytes, line: bytes, ipos: int) -> ActionOutput:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        ch = line[ipos]
+        ch = line[pos]
         if ch not in self.CASE_MAP:
             return []
         return self.right(1) + self.delete(1) + [self.CASE_MAP[ch]]
