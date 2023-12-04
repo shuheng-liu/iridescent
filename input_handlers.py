@@ -3,7 +3,7 @@ from editor import EditorState
 from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE
 from vim_actions import Op
 from clipboard import clipboard
-from utils import printable, vim_word, vim_word_begin, vim_word_end
+from utils import printable, vim_word, vim_word_begin, vim_word_end, vim_pair
 
 
 class AbstractKeyStrokeHandler(ABC):
@@ -238,6 +238,7 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
             b"e", b"E",
             b"0", b"$",
             b"G",
+            b"%",
         ]
 
     def handle(self, key, mode):
@@ -277,6 +278,7 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
             b"B": (vim_word_begin, True),
             b"e": (vim_word_end, False),
             b"E": (vim_word_end, True),
+            b"%": (vim_pair, False),
         }
         try:
             vf, capital = vf_lookup[key]

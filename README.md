@@ -85,7 +85,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `F<char>`: Navigate to the previous occurrence of `<char>`
     - `t<char>`: Navigate to the character before the next occurrence of `<char>`
     - `T<char>`: Navigate to the character after the previous occurrence of `<char>`
-    - `%`: Navigate between matching pairs of parentheses, square brackets, angle brackets, or curly braces. (TODO)
+    - `%`: Navigate between matching pairs of parentheses, square brackets, angle brackets, or curly braces.
 - Deletion:
     - `dw`/`dW`: Delete until the next beginning-of-word.
     - `de`/`dE`: Delete until the next end-of-word.
@@ -140,7 +140,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
       string blindly.
 - Miscellaneous
     - `Enter`: Sends the current line. Notice that the next prompt will still be in *Normal* mode.
-    - `~`: Switch casing of the current character. I.e., change `a` to 'A` and `A` to `a` (TODO)
+    - `~`: Switch casing of the current character. I.e., change `a` to 'A` and `A` to `a`
 
 ## Unsupported Vim Features
 

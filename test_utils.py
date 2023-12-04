@@ -300,3 +300,33 @@ def test_vim_till(npos, expected, capital):
             vim_till(content, npos, needle, capital)
     else:
         assert vim_till(content, npos, needle, capital) == expected
+
+
+@pytest.mark.parametrize(
+    argnames=["npos", "expected"],
+    argvalues=[
+        [-1, Exception],
+        [0, 6],  # "|(|a(b)c)#"
+        [1, 1],  # "(|a|(b)c)#"
+        [2, 4],  # "(a|(|b)c)#"
+        [3, 3],  # "(a(|b|)c)#"
+        [4, 2],  # "(a(b|)|c)#"
+        [5, 5],  # "(a(b)|c|)#"
+        [6, 0],  # "(a(b)c|)|#"
+        [7, Exception],
+    ]
+)
+@pytest.mark.parametrize(argnames="replace", argvalues=[b"()", b"[]", b"{}", b"<>"])
+def test_vim_pair(npos, expected, replace):
+    from utils import vim_pair
+    content = (
+        b"(a(b)c)"
+        .replace(b"(", replace[0:1])
+        .replace(b")", replace[1:2])
+    )
+    needle = b"B"
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            vim_pair(content, npos, False)
+    else:
+        assert vim_pair(content, npos, False) == expected

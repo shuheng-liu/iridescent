@@ -196,3 +196,38 @@ def vim_till(content: bytes, npos: int, ch: bytes, capital: bool = False):
     if 0 <= pos < len(content):
         return pos + (1 if capital else -1)
     return pos
+
+
+def vim_pair(content: bytes, npos: int, capital: bool = False):
+    r"""
+    Return the matching position of the current char. If nonexistent, return the same npos.
+    """
+    assert 0 <= npos < len(content)
+    assert capital is False
+    _lookup = {
+        b"(": (b")", 1),
+        b"<": (b">", 1),
+        b"{": (b"}", 1),
+        b"[": (b"]", 1),
+        b")": (b"(", -1),
+        b">": (b"<", -1),
+        b"}": (b"{", -1),
+        b"]": (b"[", -1),
+    }
+
+    epush = content[npos: npos + 1]
+    if epush not in _lookup:
+        return npos
+    epop, direction = _lookup[epush]
+
+    stack = []
+    end = len(content) if direction > 0 else -1
+    for i in range(npos, end, direction):
+        ch = content[i:i + 1]
+        if ch == epush:
+            stack.append(epush)
+        elif ch == epop:
+            stack.pop()
+        if not stack:
+            return i
+    return npos
