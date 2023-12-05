@@ -35,12 +35,12 @@ class SpecialOp(ABC):
         pass
 
 
-class SetInsert(SpecialOp):
+class SetInsertOp(SpecialOp):
     def control(self, editor_state_manager, ops):
         editor_state_manager.set_insert()
 
 
-class SetReplace(SpecialOp):
+class SetReplaceOp(SpecialOp):
     def control(self, editor_state_manager, ops):
         editor_state_manager.set_replace()
 
@@ -73,14 +73,14 @@ class NavigateHistoryOp(SpecialOp):
             ops.append(line)
 
 
-class ClipboardCopy(SpecialOp):
+class ClipboardCopyOp(SpecialOp):
     def __init__(self, content):
         super().__init__(content)
 
     def control(self, editor_state_manager, ops):
         content, = self.args
         if content:
-            clipboard.copy(self.args[0])
+            clipboard.copy(content)
 
 
 ActionOutput = Union[
@@ -153,7 +153,7 @@ def __convert_delete_to_change(D):
     class C(D):
         def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
             ops, sops = D.act(self, arg, line, pos)
-            return ops, sops + [SetInsert()]
+            return ops, sops + [SetInsertOp()]
 
     C.__name__ = D.__name__.replace("Delete", "Change")
 
@@ -249,7 +249,7 @@ class Delete(Action):
 
         # special case for "dd", "cc", and "yy"
         if arg.decode() == self.__class__.__name__.lower()[0]:
-            return self.delete_line(arg, line, pos), [ClipboardCopy(line)]
+            return self.delete_line(arg, line, pos), [ClipboardCopyOp(line)]
 
         if arg not in self._VF_CAP_OFFSET_LOOKUP:
             return [], []
@@ -258,9 +258,9 @@ class Delete(Action):
         new = vf(line, pos, cap) + offset
         count = min(max(0, new), len(line)) - pos
         if count > 0:
-            return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: pos + count])]
+            return self.right(count) + self.delete(count), [ClipboardCopyOp(line[pos: pos + count])]
         else:
-            return self.delete(abs(count)), [ClipboardCopy(line[pos - abs(count): pos])]
+            return self.delete(abs(count)), [ClipboardCopyOp(line[pos - abs(count): pos])]
 
 
 @register_action(ActionEnum.yi, transform_cls=__convert_delete_to_yank)
@@ -270,7 +270,7 @@ class DeleteInBetween(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg == b'w' or arg == b'W':
             begin, end = vim_word_boundary(line, pos, capital=(arg == b'W'))
-            return self.right(end - pos + 1) + self.delete(end - begin + 1), [ClipboardCopy(line[begin: end + 1])]
+            return self.right(end - pos + 1) + self.delete(end - begin + 1), [ClipboardCopyOp(line[begin: end + 1])]
 
         pairs = [b'()', b'[]', b'{}', b'<>', b'``', b"''", b'""', b',,', b'  ']
         for pair in pairs:
@@ -283,7 +283,7 @@ class DeleteInBetween(Delete):
         try:
             left = line.rindex(l, 0, pos + 1)
             right = line.index(r, pos)
-            return self.right(right - pos) + self.delete(right - left - 1), [ClipboardCopy(line[left + 1: right])]
+            return self.right(right - pos) + self.delete(right - left - 1), [ClipboardCopyOp(line[left + 1: right])]
         except ValueError:
             return [], []
 
@@ -297,7 +297,7 @@ class DeleteTill(Delete):
         if not 0 <= new_pos < len(line):
             return [], []
         count = new_pos - pos + 1
-        return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: new_pos + 1])]
+        return self.right(count) + self.delete(count), [ClipboardCopyOp(line[pos: new_pos + 1])]
 
 
 @register_action(ActionEnum.yT, transform_cls=__convert_delete_to_yank)
@@ -309,7 +309,7 @@ class DeleteTillBackwards(Delete):
         if not 0 <= new_pos < len(line):
             return [], []
         count = pos - new_pos + 1
-        return self.right(1) + self.delete(count), [ClipboardCopy(line[new_pos: pos + 1])]
+        return self.right(1) + self.delete(count), [ClipboardCopyOp(line[new_pos: pos + 1])]
 
 
 @register_action(ActionEnum.yf, transform_cls=__convert_delete_to_yank)
@@ -321,7 +321,7 @@ class DeleteFind(Delete):
         if not 0 <= new_pos < len(line):
             return [], []
         count = new_pos - pos + 1
-        return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: new_pos + 1])]
+        return self.right(count) + self.delete(count), [ClipboardCopyOp(line[pos: new_pos + 1])]
 
 
 @register_action(ActionEnum.yF, transform_cls=__convert_delete_to_yank)
@@ -333,7 +333,7 @@ class DeleteFindBackwards(Delete):
         if not 0 <= new_pos < len(line):
             return [], []
         count = pos - new_pos + 1
-        return self.right(1) + self.delete(count), [ClipboardCopy(line[new_pos: pos + 1])]
+        return self.right(1) + self.delete(count), [ClipboardCopyOp(line[new_pos: pos + 1])]
 
 
 @register_action(ActionEnum.s, transform_cls=__convert_delete_to_change)
@@ -343,7 +343,7 @@ class DeleteOneChar(Action):
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.right(1) + self.delete(1), [ClipboardCopy(line[pos: pos + 1])]
+        return self.right(1) + self.delete(1), [ClipboardCopyOp(line[pos: pos + 1])]
 
 
 @register_action(ActionEnum.i)
@@ -352,7 +352,7 @@ class Insert(Action):
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return [], [SetInsert()]
+        return [], [SetInsertOp()]
 
 
 @register_action(ActionEnum.I)
@@ -361,7 +361,7 @@ class InsertAtLineStart(Action):
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.left(pos), [SetInsert()]
+        return self.left(pos), [SetInsertOp()]
 
 
 @register_action(ActionEnum.a)
@@ -370,7 +370,7 @@ class Append(Action):
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.right(1), [SetInsert()]
+        return self.right(1), [SetInsertOp()]
 
 
 @register_action(ActionEnum.A)
@@ -379,7 +379,7 @@ class AppendAtLineEnd(Action):
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.right(len(line) - pos), [SetInsert()]
+        return self.right(len(line) - pos), [SetInsertOp()]
 
 
 @register_action(ActionEnum.P)
@@ -415,7 +415,7 @@ class EnterReplaceMode(Action):
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return [], [SetReplace()]
+        return [], [SetReplaceOp()]
 
 
 @register_action(ActionEnum.tilde)
