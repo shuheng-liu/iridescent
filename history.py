@@ -1,5 +1,6 @@
 import os
 import re
+import bisect
 
 DEFAULT_REJECT_REGEXES = (
     re.compile(r"h\s*", re.IGNORECASE),
@@ -23,6 +24,9 @@ class HistoryManager:
         self.index = self.init_size - 1
         self._buffer = ""
         self.reject_regexes = reject_regexes
+        self.search_pattern = None
+        self.search_matches = []  # list of (history_index, match) pairs
+        self._skip_buffers = 0  # number of times to skip the .set_buffer() operations
 
     def _emit(self):
         if self.index == len(self.history):
@@ -49,14 +53,47 @@ class HistoryManager:
     def ingest(self):
         if self._ingestible(self._buffer):
             self.history.append(self._buffer)
-        self.index = len(self.history)
+            match = self.search_pattern and self.search_pattern.search(self._buffer)
+            self.index = len(self.history)
+            if match:
+                self.search_matches.append((self.index - 1, match))
         self.set_buffer(b"")
+
+    def start_search(self, pattern: str):
+        self.search_pattern = re.compile(pattern)
+        self.search_matches = []
+        for i, history in enumerate(self.history):
+            match = self.search_pattern.search(history)
+            if match:
+                self.search_matches.append((i, match))
+
+    def search_next(self):
+        if not self.search_matches:
+            return None, None
+
+        pos = bisect.bisect_left([key for key, match in self.search_matches], self.index + 1)
+        self.index, match = self.search_matches[pos if pos < len(self.search_matches) else 0]
+        return self._emit(), match
+
+    def search_prev(self):
+        if not self.search_matches:
+            return None, None
+        pos = bisect.bisect_left([key for key, match in self.search_matches], self.index) - 1
+        # pos == -1 happen to be what we need (the last entry)
+        self.index, match = self.search_matches[pos]
+        return self._emit(), match
 
     def retrieve_buffer(self):
         self.index = len(self.history)
         return self._emit()
 
+    def skip_buffers(self, n=1):
+        self._skip_buffers = n
+
     def set_buffer(self, line: bytes):
+        if self._skip_buffers > 0:
+            self._skip_buffers -= 1
+            return
         self._buffer = line.decode()
 
     def write_to_disk(self):

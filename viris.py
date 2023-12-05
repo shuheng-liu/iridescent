@@ -1,7 +1,4 @@
 #!/Users/shuliu/PycharmProjects/pexpect/venv/bin/python3
-import os
-import sys
-
 import pexpect as pe
 from filters import DebugLogger, InputFilter, OutputFilter
 from history import HistoryManager

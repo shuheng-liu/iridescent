@@ -11,6 +11,9 @@ from clipboard import clipboard
 ascii_lowercase = ascii_lowercase.encode()
 ascii_uppercase = ascii_uppercase.encode()
 
+# Used internally to control whether searching forward (with /) or backward (with ?)
+_search_forward = True
+
 
 class Op(Enum):
     LEFT = _LEFT
@@ -37,6 +40,34 @@ class SetInsert(SpecialOp):
 class SetReplace(SpecialOp):
     def control(self, editor_state_manager, ops):
         editor_state_manager.set_replace()
+
+
+class StartHistorySearchOp(SpecialOp):
+    def __init__(self, forward, pattern):
+        super().__init__(forward, pattern)
+
+    def control(self, editor_state_manager, ops):
+        hm = editor_state_manager.filter_obj.history_manager
+        forward, pattern = self.args
+
+        global _search_forward
+        _search_forward = forward
+
+        hm.start_search(pattern)
+
+
+class NavigateHistoryOp(SpecialOp):
+    def __init__(self, forward):
+        super().__init__(forward)
+
+    def control(self, editor_state_manager, ops):
+        hm = editor_state_manager.filter_obj.history_manager
+        line, match = hm.search_next() if self.args[0] else hm.search_prev()
+        if not line:  # if the match_pattern is not found, don't delete anything
+            ops.clear()
+        else:
+            hm.skip_buffers()
+            ops.append(line)
 
 
 ActionOutput = Union[
@@ -86,10 +117,15 @@ class ActionEnum(Enum):  # vim-like actions
     R = b"R"  # change vim to replace mode
 
     tilde = b"~"  # switch casing
+    slash = b"/"  # start history search (forward)
+    qmark = b"?"  # start history search (backward)
+    n = b"n"  # search next history match
+    N = b"N"  # search prev history match
 
 
 class Action(ABC):
     NO_ARG = False
+    VARIADIC_ARG_TERMINATORS = None
 
     def left(self, n):
         return [Op.LEFT] * n
@@ -103,6 +139,9 @@ class Action(ABC):
     @abstractmethod
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         pass
+
+    def delete_line(self, arg: bytes, line: bytes, pos: int):
+        return self.right(len(line) - pos) + self.delete(len(line))
 
 
 class Find(Action):
@@ -152,9 +191,9 @@ class Delete(Action):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert 0 <= pos < len(line)
 
-        # special case for "dd" and "cc"
+        # special case for "dd", "cc", and "yy"
         if arg.decode() == self.__class__.__name__.lower()[0]:
-            return self.right(len(line) - pos) + self.delete(len(line))
+            return self.delete_line(arg, line, pos)
 
         if arg not in self._VF_CAP_OFFSET_LOOKUP:
             return []
@@ -183,7 +222,7 @@ class DeleteInBetween(Delete):
             return []
 
         try:
-            left = line.rindex(l, 0, pos+1)
+            left = line.rindex(l, 0, pos + 1)
             right = line.index(r, pos)
             return self.right(right - pos) + self.delete(right - left - 1)
         except ValueError:
@@ -345,7 +384,13 @@ class EnterReplaceMode(Action):
 
 class SwitchCasing(Action):
     NO_ARG = True
-    CASE_MAP = {k: v for k, v in zip(ascii_lowercase + ascii_uppercase, ascii_uppercase + ascii_lowercase)}
+    CASE_MAP = {
+        k: v
+        for k, v in zip(
+            ascii_lowercase + ascii_uppercase,
+            ascii_uppercase + ascii_lowercase,
+        )
+    }
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
@@ -353,6 +398,48 @@ class SwitchCasing(Action):
         if ch not in self.CASE_MAP:
             return []
         return self.right(1) + self.delete(1) + [self.CASE_MAP[ch]]
+
+
+class StartSearchAbstract(Action):
+    VARIADIC_ARG_TERMINATORS = [b"\r"]
+    IS_FORWARD = ...
+
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        assert arg.endswith(b"\r") and isinstance(self.IS_FORWARD, bool)
+        pattern = arg[:-1].decode()
+        ops = self.delete_line(arg, line, pos)
+        special_ops = [
+            StartHistorySearchOp(self.IS_FORWARD, pattern),
+            NavigateHistoryOp(self.IS_FORWARD)
+        ]
+        return ops, special_ops
+
+
+class StartSearchForward(StartSearchAbstract):
+    IS_FORWARD = True
+
+
+class StartSearchBackward(StartSearchAbstract):
+    IS_FORWARD = False
+
+
+class SearchNavigate(Action):
+    NO_ARG = True
+    SEARCH_FORWARD = ...
+
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        assert arg is None and isinstance(self.SEARCH_FORWARD, bool)
+        ops = self.delete_line(arg, line, pos)
+        global _search_forward
+        return ops, [NavigateHistoryOp(not self.SEARCH_FORWARD ^ _search_forward)]
+
+
+class SearchNext(SearchNavigate):
+    SEARCH_FORWARD = True
+
+
+class SearchPrev(SearchNavigate):
+    SEARCH_FORWARD = False
 
 
 __lookup = {
@@ -392,7 +479,12 @@ __lookup = {
     ActionEnum.P: PasteBefore,
     ActionEnum.r: ReplaceCharacter,
     ActionEnum.R: EnterReplaceMode,
+
     ActionEnum.tilde: SwitchCasing,
+    ActionEnum.slash: StartSearchForward,
+    ActionEnum.qmark: StartSearchBackward,
+    ActionEnum.n: SearchNext,
+    ActionEnum.N: SearchPrev,
 }
 
 

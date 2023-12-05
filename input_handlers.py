@@ -182,7 +182,10 @@ class NormalModeHandler(AbstractKeyStrokeHandler):
 
 class VimActionHandler(NormalModeHandler):
     def accepts_key(self, key):
-        return key.decode().isprintable()
+        return key.decode().isprintable() or (
+                self.filter_obj.state_manager._arg_buffer
+                and key == b"\r"
+        )
 
     def handle(self, key, mode):
         ops = self.filter_obj.state_manager.normal_buffer(
@@ -220,13 +223,16 @@ class VimEnterHandler(NormalModeHandler, LineEndHandler):
     def accepts_mode(self, mode):
         return NormalModeHandler.accepts_mode(self, mode)
 
+    def accepts_key(self, key):
+        return LineEndHandler.accepts_key(self, key) and not self.filter_obj.state_manager._arg_buffer
+
 
 class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
     def accepts_mode(self, mode):
         return NormalModeHandler.accepts_mode(self, mode)
 
     def accepts_key(self, key):
-        if self.filter_obj.state_manager._action_buffer is not None:
+        if self.filter_obj.state_manager._action_buffer:
             return False
         return key in [
             UP, DOWN,

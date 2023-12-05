@@ -22,23 +22,29 @@ class EditorState(Enum):
 
 
 class EditorStateManger:
-    def __init__(self):
+    def __init__(self, filter_obj):
         self._state = EditorState.INSERT
         self._action_buffer = None
+        self._arg_buffer = None
+        self.filter_obj = filter_obj
+
+    def _reset_buffers(self):
+        self._action_buffer = b""
+        self._arg_buffer = b""
 
     def set_normal(self):  # set to normal mode
         self._state = EditorState.NORMAL
-        self._action_buffer = None
+        self._reset_buffers()
         _set_cursor_block()
 
     def set_insert(self):  # set to input mode
         self._state = EditorState.INSERT
-        self._action_buffer = None
+        self._reset_buffers()
         _set_cursor_vertical()
 
     def set_replace(self):
         self._state = EditorState.REPLACE
-        self._action_buffer = None
+        self._reset_buffers()
         _set_cursor_underline()
 
     @property
@@ -47,17 +53,26 @@ class EditorStateManger:
 
     def normal_buffer(self, key, current_line, cursor_pos):
         if len(key) != 1:
-            self._action_buffer = None
+            self._reset_buffers()
             return []
 
         if not self._action_buffer:
             try:
                 self._action_buffer = ActionEnum(key)
-                action = get_action(self._action_buffer)
-                return self.post_process(action().act(None, current_line, cursor_pos)) if action.NO_ARG else []
             except ValueError:
-                self._action_buffer = None
+                self._reset_buffers()
                 return []
+
+            action = get_action(self._action_buffer)
+            return self.post_process(action().act(None, current_line, cursor_pos)) if action.NO_ARG else []
+
+        # Variadic arguments
+        action = get_action(self._action_buffer)
+        if action.VARIADIC_ARG_TERMINATORS:
+            self._arg_buffer += key
+            if key in action.VARIADIC_ARG_TERMINATORS:
+                return self.post_process(action().act(self._arg_buffer, current_line, cursor_pos))
+            return []
 
         try:
             action = ActionEnum(self._action_buffer.value + key)
@@ -75,5 +90,5 @@ class EditorStateManger:
         else:
             ops = action_output
 
-        self._action_buffer = None
+        self._reset_buffers()
         return ops
