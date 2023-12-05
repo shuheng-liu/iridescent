@@ -137,7 +137,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `I`: Exit *Normal* mode and enter *Insert* mode, moving the cursor (vertical bar) to beginning of the line.
     - `A`: Exit *Normal* mode and enter *Insert* mode, moving the cursor (vertical bar) to end of the line.
     - `R`: Exit *Normal* mode and enter *Replace* mode, preserving the cursor (underscore) position.
-- Search through history: (TODO)
+- Search through history:
     - `?<search-string><Enter>`: search the history from latest to oldest, where <search-string> is any regex string.
       Notice the leading `?`.
     - `/<search-string><Enter>`: search the history from oldest to latest. Notice the leading `/`.
