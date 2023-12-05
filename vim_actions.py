@@ -1,3 +1,4 @@
+import warnings
 from enum import Enum
 from abc import ABC, abstractmethod
 from string import ascii_lowercase, ascii_uppercase
@@ -484,3 +485,8 @@ class SearchPrev(SearchNavigate):
 
 def get_action(action: ActionEnum):
     return _action_lookup[action]
+
+
+for action in ActionEnum:
+    if action not in _action_lookup:
+        warnings.warn(f"Action {action} is not implemented")
