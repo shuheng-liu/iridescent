@@ -14,6 +14,8 @@ ascii_uppercase = ascii_uppercase.encode()
 # Used internally to control whether searching forward (with /) or backward (with ?)
 _search_forward = True
 
+_action_lookup = {}
+
 
 class Op(Enum):
     LEFT = _LEFT
@@ -133,6 +135,42 @@ class ActionEnum(Enum):  # vim-like actions
     N = b"N"  # search prev history match
 
 
+def register_action(action: ActionEnum, transform_cls=None):
+    if transform_cls is None:
+        transform_cls = lambda x: x
+
+    def wrapper(cls):
+        _action_lookup[action] = transform_cls(cls)
+        return cls
+
+    return wrapper
+
+
+def __convert_delete_to_change(D):
+    assert "Delete" in D.__name__
+
+    class C(D):
+        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+            ops, sops = D.act(self, arg, line, pos)
+            return ops, sops + [SetInsert()]
+
+    C.__name__ = D.__name__.replace("Delete", "Change")
+
+    return C
+
+
+def __convert_delete_to_yank(D):
+    assert "Delete" in D.__name__
+
+    class Y(D):
+        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+            return [], D.act(self, arg, line, pos)[1]
+
+    Y.__name__ = D.__name__.replace("Delete", "Yank")
+
+    return Y
+
+
 class Action(ABC):
     NO_ARG = False
     VARIADIC_ARG_TERMINATORS = None
@@ -154,6 +192,7 @@ class Action(ABC):
         return self.right(len(line) - pos) + self.delete(len(line))
 
 
+@register_action(ActionEnum.f)
 class Find(Action):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_find(line, pos, arg, capital=False)
@@ -162,6 +201,7 @@ class Find(Action):
         return self.right(new - pos)
 
 
+@register_action(ActionEnum.t)
 class Till(Action):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_till(line, pos, arg, capital=False)
@@ -170,6 +210,7 @@ class Till(Action):
         return self.right(new - pos)
 
 
+@register_action(ActionEnum.F)
 class FindBackwards(Action):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_find(line, pos, arg, capital=True)
@@ -178,6 +219,7 @@ class FindBackwards(Action):
         return self.left(pos - new)
 
 
+@register_action(ActionEnum.T)
 class TillBackwards(Action):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_till(line, pos, arg, capital=True)
@@ -186,6 +228,9 @@ class TillBackwards(Action):
         return self.left(pos - new)
 
 
+@register_action(ActionEnum.y, transform_cls=__convert_delete_to_yank)
+@register_action(ActionEnum.c, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.d)
 class Delete(Action):
     _VF_CAP_OFFSET_LOOKUP = {
         b"b": (vim_word_begin, False, 0),
@@ -217,6 +262,9 @@ class Delete(Action):
             return self.delete(abs(count)), [ClipboardCopy(line[pos - abs(count): pos])]
 
 
+@register_action(ActionEnum.yi, transform_cls=__convert_delete_to_yank)
+@register_action(ActionEnum.ci, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.di)
 class DeleteInBetween(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg == b'w' or arg == b'W':
@@ -239,6 +287,9 @@ class DeleteInBetween(Delete):
             return [], []
 
 
+@register_action(ActionEnum.yt, transform_cls=__convert_delete_to_yank)
+@register_action(ActionEnum.ct, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.dt)
 class DeleteTill(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_till(line, pos, arg, False)
@@ -248,6 +299,9 @@ class DeleteTill(Delete):
         return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: new_pos + 1])]
 
 
+@register_action(ActionEnum.yT, transform_cls=__convert_delete_to_yank)
+@register_action(ActionEnum.cT, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.dT)
 class DeleteTillBackwards(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_till(line, pos, arg, True)
@@ -257,6 +311,9 @@ class DeleteTillBackwards(Delete):
         return self.right(1) + self.delete(count), [ClipboardCopy(line[new_pos: pos + 1])]
 
 
+@register_action(ActionEnum.yf, transform_cls=__convert_delete_to_yank)
+@register_action(ActionEnum.cf, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.df)
 class DeleteFind(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_find(line, pos, arg, False)
@@ -266,6 +323,9 @@ class DeleteFind(Delete):
         return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: new_pos + 1])]
 
 
+@register_action(ActionEnum.yF, transform_cls=__convert_delete_to_yank)
+@register_action(ActionEnum.cF, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.dF)
 class DeleteFindBackwards(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_find(line, pos, arg, True)
@@ -275,6 +335,8 @@ class DeleteFindBackwards(Delete):
         return self.right(1) + self.delete(count), [ClipboardCopy(line[new_pos: pos + 1])]
 
 
+@register_action(ActionEnum.s, transform_cls=__convert_delete_to_change)
+@register_action(ActionEnum.x)
 class DeleteOneChar(Action):
     NO_ARG = True
 
@@ -283,31 +345,7 @@ class DeleteOneChar(Action):
         return self.right(1) + self.delete(1), [ClipboardCopy(line[pos: pos + 1])]
 
 
-def __convert_delete_to_change(D):
-    assert "Delete" in D.__name__
-
-    class C(D):
-        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-            ops, sops = D.act(self, arg, line, pos)
-            return ops, sops + [SetInsert()]
-
-    C.__name__ = D.__name__.replace("Delete", "Change")
-
-    return C
-
-
-def __convert_delete_to_yank(D):
-    assert "Delete" in D.__name__
-
-    class Y(D):
-        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-            return [], D.act(self, arg, line, pos)[1]
-
-    Y.__name__ = D.__name__.replace("Delete", "Yank")
-
-    return Y
-
-
+@register_action(ActionEnum.i)
 class Insert(Action):
     NO_ARG = True
 
@@ -316,6 +354,7 @@ class Insert(Action):
         return [], [SetInsert()]
 
 
+@register_action(ActionEnum.I)
 class InsertAtLineStart(Action):
     NO_ARG = True
 
@@ -324,6 +363,7 @@ class InsertAtLineStart(Action):
         return self.left(pos), [SetInsert()]
 
 
+@register_action(ActionEnum.a)
 class Append(Action):
     NO_ARG = True
 
@@ -332,6 +372,7 @@ class Append(Action):
         return self.right(1), [SetInsert()]
 
 
+@register_action(ActionEnum.A)
 class AppendAtLineEnd(Action):
     NO_ARG = True
 
@@ -340,6 +381,7 @@ class AppendAtLineEnd(Action):
         return self.right(len(line) - pos), [SetInsert()]
 
 
+@register_action(ActionEnum.P)
 class PasteBefore(Action):
     NO_ARG = True
 
@@ -348,6 +390,7 @@ class PasteBefore(Action):
         return [clipboard.paste()]
 
 
+@register_action(ActionEnum.p)
 class PasteAfter(Action):
     NO_ARG = True
 
@@ -356,6 +399,7 @@ class PasteAfter(Action):
         return [Op.RIGHT, clipboard.paste(), Op.LEFT]
 
 
+@register_action(ActionEnum.r)
 class ReplaceCharacter(Action):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg not in printable or arg == "\n":
@@ -364,6 +408,7 @@ class ReplaceCharacter(Action):
         return self.right(1) + self.delete(1) + [arg]
 
 
+@register_action(ActionEnum.R)
 class EnterReplaceMode(Action):
     NO_ARG = True
 
@@ -372,6 +417,7 @@ class EnterReplaceMode(Action):
         return [], [SetReplace()]
 
 
+@register_action(ActionEnum.tilde)
 class SwitchCasing(Action):
     NO_ARG = True
     CASE_MAP = {
@@ -405,10 +451,12 @@ class StartSearchAbstract(Action):
         return ops, special_ops
 
 
+@register_action(ActionEnum.slash)
 class StartSearchForward(StartSearchAbstract):
     IS_FORWARD = True
 
 
+@register_action(ActionEnum.qmark)
 class StartSearchBackward(StartSearchAbstract):
     IS_FORWARD = False
 
@@ -424,59 +472,15 @@ class SearchNavigate(Action):
         return ops, [NavigateHistoryOp(not self.SEARCH_FORWARD ^ _search_forward)]
 
 
+@register_action(ActionEnum.n)
 class SearchNext(SearchNavigate):
     SEARCH_FORWARD = True
 
 
+@register_action(ActionEnum.N)
 class SearchPrev(SearchNavigate):
     SEARCH_FORWARD = False
 
 
-__lookup = {
-    ActionEnum.f: Find,
-    ActionEnum.t: Till,
-    ActionEnum.F: FindBackwards,
-    ActionEnum.T: TillBackwards,
-
-    ActionEnum.d: Delete,
-    ActionEnum.di: DeleteInBetween,
-    ActionEnum.dt: DeleteTill,
-    ActionEnum.dT: DeleteTillBackwards,
-    ActionEnum.df: DeleteFind,
-    ActionEnum.dF: DeleteFindBackwards,
-    ActionEnum.x: DeleteOneChar,
-
-    ActionEnum.c: __convert_delete_to_change(Delete),
-    ActionEnum.ci: __convert_delete_to_change(DeleteInBetween),
-    ActionEnum.ct: __convert_delete_to_change(DeleteTill),
-    ActionEnum.cT: __convert_delete_to_change(DeleteTillBackwards),
-    ActionEnum.cf: __convert_delete_to_change(DeleteFind),
-    ActionEnum.cF: __convert_delete_to_change(DeleteFindBackwards),
-    ActionEnum.s: __convert_delete_to_change(DeleteOneChar),
-
-    ActionEnum.y: __convert_delete_to_yank(Delete),
-    ActionEnum.yi: __convert_delete_to_yank(DeleteInBetween),
-    ActionEnum.yt: __convert_delete_to_yank(DeleteTill),
-    ActionEnum.yT: __convert_delete_to_yank(DeleteTillBackwards),
-    ActionEnum.yf: __convert_delete_to_yank(DeleteFind),
-    ActionEnum.yF: __convert_delete_to_yank(DeleteFindBackwards),
-
-    ActionEnum.i: Insert,
-    ActionEnum.a: Append,
-    ActionEnum.I: InsertAtLineStart,
-    ActionEnum.A: AppendAtLineEnd,
-    ActionEnum.p: PasteAfter,
-    ActionEnum.P: PasteBefore,
-    ActionEnum.r: ReplaceCharacter,
-    ActionEnum.R: EnterReplaceMode,
-
-    ActionEnum.tilde: SwitchCasing,
-    ActionEnum.slash: StartSearchForward,
-    ActionEnum.qmark: StartSearchBackward,
-    ActionEnum.n: SearchNext,
-    ActionEnum.N: SearchPrev,
-}
-
-
 def get_action(action: ActionEnum):
-    return __lookup[action]
+    return _action_lookup[action]
