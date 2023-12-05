@@ -194,7 +194,6 @@ class VimActionHandler(NormalModeHandler):
             self.filter_obj.cursor_pos,
         )
         output = b""
-        cleared = False
         for op in ops:
             if op == Op.LEFT:
                 self.filter_obj.move_cursor_left()
@@ -203,10 +202,6 @@ class VimActionHandler(NormalModeHandler):
                 self.filter_obj.move_cursor_right()
                 output += RIGHT
             elif op == Op.DELETE:
-                if not cleared:
-                    clipboard.clear()
-                    cleared = True
-                clipboard.prepend(self.filter_obj.current_byte)
                 self.filter_obj.delete()
                 output += DELETE
             elif isinstance(op, (int, bytes)):

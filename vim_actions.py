@@ -22,7 +22,7 @@ class Op(Enum):
 
 
 class SpecialOp(ABC):
-    r"""Special Ops that controls the `editor_state_manager`"""
+    r"""Special Ops that controls the `editor_state_manager`. Side effects of commands should subclass this."""
 
     def __init__(self, *args):
         self.args = args
@@ -68,6 +68,16 @@ class NavigateHistoryOp(SpecialOp):
         else:
             hm.skip_buffers()
             ops.append(line)
+
+
+class ClipboardCopy(SpecialOp):
+    def __init__(self, content):
+        super().__init__(content)
+
+    def control(self, editor_state_manager, ops):
+        content, = self.args
+        if content:
+            clipboard.copy(self.args[0])
 
 
 ActionOutput = Union[
@@ -193,25 +203,25 @@ class Delete(Action):
 
         # special case for "dd", "cc", and "yy"
         if arg.decode() == self.__class__.__name__.lower()[0]:
-            return self.delete_line(arg, line, pos)
+            return self.delete_line(arg, line, pos), [ClipboardCopy(line)]
 
         if arg not in self._VF_CAP_OFFSET_LOOKUP:
-            return []
+            return [], []
 
         vf, cap, offset = self._VF_CAP_OFFSET_LOOKUP[arg]
         new = vf(line, pos, cap) + offset
         count = min(max(0, new), len(line)) - pos
         if count > 0:
-            return self.right(count) + self.delete(count)
+            return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: pos + count])]
         else:
-            return self.delete(abs(count))
+            return self.delete(abs(count)), [ClipboardCopy(line[pos - abs(count): pos])]
 
 
 class DeleteInBetween(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg == b'w' or arg == b'W':
             begin, end = vim_word_boundary(line, pos, capital=(arg == b'W'))
-            return self.right(end - pos + 1) + self.delete(end - begin + 1)
+            return self.right(end - pos + 1) + self.delete(end - begin + 1), [ClipboardCopy(line[begin: end + 1])]
 
         pairs = [b'()', b'[]', b'{}', b'<>', b'``', b"''", b'""', b',,', b'  ']
         for pair in pairs:
@@ -219,58 +229,58 @@ class DeleteInBetween(Delete):
                 l, r = pair
                 break
         else:
-            return []
+            return [], []
 
         try:
             left = line.rindex(l, 0, pos + 1)
             right = line.index(r, pos)
-            return self.right(right - pos) + self.delete(right - left - 1)
+            return self.right(right - pos) + self.delete(right - left - 1), [ClipboardCopy(line[left + 1: right])]
         except ValueError:
-            return []
+            return [], []
 
 
 class DeleteTill(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> List[Op]:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_till(line, pos, arg, False)
         if not 0 <= new_pos < len(line):
-            return []
+            return [], []
         count = new_pos - pos + 1
-        return self.right(count) + self.delete(count)
+        return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: new_pos + 1])]
 
 
 class DeleteTillBackwards(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> List[Op]:
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_till(line, pos, arg, True)
         if not 0 <= new_pos < len(line):
-            return []
+            return [], []
         count = pos - new_pos + 1
-        return self.right(1) + self.delete(count)
+        return self.right(1) + self.delete(count), [ClipboardCopy(line[new_pos: pos + 1])]
 
 
 class DeleteFind(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_find(line, pos, arg, False)
         if not 0 <= new_pos < len(line):
-            return []
+            return [], []
         count = new_pos - pos + 1
-        return self.right(count) + self.delete(count)
+        return self.right(count) + self.delete(count), [ClipboardCopy(line[pos: new_pos + 1])]
 
 
 class DeleteFindBackwards(Delete):
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_find(line, pos, arg, True)
         if not 0 <= new_pos < len(line):
-            return []
+            return [], []
         count = pos - new_pos + 1
-        return self.right(1) + self.delete(count)
+        return self.right(1) + self.delete(count), [ClipboardCopy(line[new_pos: pos + 1])]
 
 
 class DeleteOneChar(Action):
     NO_ARG = True
 
-    def act(self, arg, line, pos):
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
-        return self.right(1) + self.delete(1)
+        return self.right(1) + self.delete(1), [ClipboardCopy(line[pos: pos + 1])]
 
 
 def __convert_delete_to_change(D):
@@ -278,7 +288,8 @@ def __convert_delete_to_change(D):
 
     class C(D):
         def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-            return D.act(self, arg, line, pos), [SetInsert()]
+            ops, sops = D.act(self, arg, line, pos)
+            return ops, sops + [SetInsert()]
 
     C.__name__ = D.__name__.replace("Delete", "Change")
 
@@ -290,28 +301,7 @@ def __convert_delete_to_yank(D):
 
     class Y(D):
         def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-            # print("yanking")
-            actions = D.act(self, arg, line, pos)
-            # print(actions)
-
-            for n_rights, op in enumerate(actions):
-                if op != Op.RIGHT:
-                    break
-            else:
-                n_rights = len(actions)
-
-            for n_deletes, op in enumerate(actions[n_rights:]):
-                if op != Op.DELETE:
-                    break
-            else:
-                n_deletes = len(actions) - n_rights
-
-            right = pos + n_rights
-            left = right - n_deletes
-            if left != right:
-                clipboard.copy(line[left: right])
-
-            return []
+            return [], D.act(self, arg, line, pos)[1]
 
     Y.__name__ = D.__name__.replace("Delete", "Yank")
 
