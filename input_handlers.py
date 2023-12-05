@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from editor import EditorState
 from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE
 from vim_actions import Op
-from clipboard import clipboard
 from utils import printable, vim_word, vim_word_begin, vim_word_end, vim_pair
 
 
@@ -42,11 +41,11 @@ class SwitchToNormalHandler(AbstractKeyStrokeHandler):
         return key == ESCAPE
 
     def handle(self, key, mode):
-        self.filter_obj.state_manager.set_normal()
-        if self.filter_obj.cursor_pos == len(self.filter_obj.current_line):
-            self.filter_obj.move_cursor_left()
-            return LEFT
+        if self.filter_obj.state_manager.state == EditorState.INSERT:
+            self.filter_obj.state_manager.set_normal()
+            return self.filter_obj.move_cursor_left()
 
+        self.filter_obj.state_manager.set_normal()
         return b''
 
 
