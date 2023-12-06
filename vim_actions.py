@@ -337,7 +337,7 @@ class DeleteInBetween(Delete):
             begin, end = vim_word_boundary(line, pos, capital=(arg == b'W'))
             return self.right(end - pos + 1) + self.delete(end - begin + 1), [ClipboardCopyOp(line[begin: end + 1])]
 
-        pairs = [b'()', b'[]', b'{}', b'<>', b'``', b"''", b'""', b',,', b'  ']
+        pairs = [b'()', b'[]', b'{}', b'<>', b'``', b"''", b'""', b',,', b'  ', b'__']
         for pair in pairs:
             if arg in pair:
                 l, r = pair
