@@ -1,5 +1,34 @@
 # Iridescent – A better IRIS terminal
 
+## Run in a container
+
+To try out iridescent in a container, you need to decide on a base IRIS image and tag from
+the [InterSystems Container Registry](https://containers.intersystems.com/) or
+alternatively [Dockerhub](https://hub.docker.com/r/daimor/intersystems-iris).
+
+For example, to use the 2023.1 IRIS Community Edition image, you can choose
+`containers.intersystems.com/intersystems/iris-community-arm64:2023.2.0.227.0` as your docker image.
+You also need to determine the name of the IRIS instance running in that image.
+For example, the default instance name for the IRIS Community Edition image is `IRIS`.
+
+Next, run the following script from the root of this repository:
+
+```bash
+./run_docker.sh <IMAGE:TAG> <INSTANCE_NAME>
+```
+
+For example, to run the 2023.1 IRIS Community Edition image with instance name `IRIS`:
+
+```bash
+./run_docker.sh containers.intersystems.com/intersystems/iris-community-arm64:2023.2.0.227.0 IRIS
+````
+
+The above command will
+
+- create a Dockerfile named `Dockerfile.temporary` in the root folder,
+- create a docker image named `iridescent` based on the Dockerfile, and
+- run a container named `iridescent` using the image, whose entry point is set to the `iridescent` prompt.
+
 ## Usage
 
 ```bash
@@ -106,9 +135,12 @@ or the [online](https://www.vim-hero.com) tutorial first.
         - backticks <code>&#96;...&#96;</code>: if `<char>` is backtick <code>`</code>
         - single quotes `'...'`: if `<char>` is single quote `'`
         - double quotes `"..."`: if `<char>` is double quote `"`
-        - underscores `_..._`: if `<char>` is underscore `_` (standard Vim doesn't support this, but it's useful when editing string concatenations)
-        - commas `,...,` if `<char>` is comma `,` (standard Vim doesn't support this, but it's useful when editing lists function calls)
-        - spaces <code>&nbsp;...&nbsp;</code> if `<char>` is space ` ` (standard Vim doesn't support this, but it's essentially an alias for `diW`)
+        - underscores `_..._`: if `<char>` is underscore `_` (standard Vim doesn't support this, but it's useful when
+          editing string concatenations)
+        - commas `,...,` if `<char>` is comma `,` (standard Vim doesn't support this, but it's useful when editing lists
+          function calls)
+        - spaces <code>&nbsp;...&nbsp;</code> if `<char>` is space ` ` (standard Vim doesn't support this, but it's
+          essentially an alias for `diW`)
     - `diw` and `diW`: As a special case to the above, `diw` deletes the word under cursor.
       Capital `w` treats consecutive non-whitespace characters as a word.
       If the current character under cursor is a whitespace, consecutive whitespaces are considered a word.

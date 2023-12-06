@@ -7,4 +7,4 @@ fi
 echo "FROM $1" > Dockerfile.temporary
 cat ./docker/Dockerfile.template >> Dockerfile.temporary
 docker build -t iridescent --build-arg IRIS_INSTANCE="$2" -f Dockerfile.temporary  .
-docker container run --rm -it iridescent
+docker container run --rm -it --name iridescent iridescent
