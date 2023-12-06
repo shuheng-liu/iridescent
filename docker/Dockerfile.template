@@ -1,0 +1,6 @@
+USER irisowner
+ARG IRIS_INSTANCE="IRIS"
+ENV IRIS_INSTANCE=$IRIS_INSTANCE
+COPY .. ./iridescent
+RUN python3 -m pip install -r ./iridescent/requirements.txt
+ENTRYPOINT ["/bin/bash", "iridescent/docker/docker_entrypoint.sh"]
