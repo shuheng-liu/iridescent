@@ -1,7 +1,4 @@
 #!/Users/shuliu/PycharmProjects/pexpect/venv/bin/python3
-import os
-import sys
-
 import pexpect as pe
 from filters import DebugLogger, InputFilter, OutputFilter
 from history import HistoryManager
@@ -14,7 +11,7 @@ if __name__ == "__main__":
         input_filter = InputFilter(opt.input_path, dlogger=debug_logger, history_manager=hm)
         output_filter = OutputFilter(opt.output_path, dlogger=debug_logger)
 
-        with pe.spawnu(f"/usr/local/bin/iris session {opt.instance}") as c:
+        with pe.spawnu(f"/usr/local/bin/iris terminal {opt.instance}") as c:
             c.setecho(False)
 
             if username and password:

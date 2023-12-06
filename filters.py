@@ -58,7 +58,7 @@ class InputFilter(IOFilter):
         super().__init__(file=file, dlogger=dlogger)
         self.current_line = None
         self.cursor_pos = 0
-        self.state_manager = EditorStateManger()
+        self.state_manager = EditorStateManger(filter_obj=self)
         self.history_manager = history_manager
         self.handlers = [H(self) for H in HANDLER_CLASSES]
         self.reset_line()
@@ -163,6 +163,15 @@ class InputFilter(IOFilter):
         self.move_cursor_right(count)
         return RIGHT * count
 
+    def move_cursor_vim(self, vf, capital):
+        assert self.state_manager.state == EditorState.NORMAL
+        new_npos = vf(self.current_line, self.cursor_pos, capital)
+        right = new_npos - self.cursor_pos
+        if right > 0:
+            return self.move_cursor_right(right)
+        else:
+            return self.move_cursor_left(-right)
+
     def __call__(self, key):
         if not isinstance(key, bytes):
             raise TypeError("InputFilter only accepts bytes as input")
@@ -171,22 +180,17 @@ class InputFilter(IOFilter):
 
         state = self.state_manager.state
         output = b''
-        disable_history_buffer = False
         for handler in self.handlers:
             if handler.accepts_mode(state) and handler.accepts_key(key):
                 self.log(f"Using handler: {handler.__class__.__name__}")
                 output = handler.handle(key, state)
-                if isinstance(handler, HistoryNavigationHandler):
-                    disable_history_buffer = True
-
                 break
 
         if self.state_manager.state == EditorState.NORMAL and self.cursor_pos == len(self.current_line):
             self.move_cursor_left()
             output += LEFT
 
-        if not disable_history_buffer:
-            self.history_manager.set_buffer(self.current_line)
+        self.history_manager.set_buffer(self.current_line)
 
         self.log_key(output, is_old=False)
         self.debug_cursor()

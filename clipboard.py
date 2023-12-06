@@ -14,17 +14,5 @@ class _ClipBoard:
     def paste(self):
         return self._content
 
-    def append(self, value):
-        if isinstance(value, int):
-            value = value.to_bytes(1, "big")
-        assert isinstance(value, bytes), (value, type(value))
-        self._content += value
-
-    def prepend(self, value):
-        if isinstance(value, int):
-            value = value.to_bytes(1, "big")
-        assert isinstance(value, bytes), (value, type(value))
-        self._content = value + self._content
-
 
 clipboard = _ClipBoard()
