@@ -146,8 +146,8 @@ or the [online](https://www.vim-hero.com) tutorial first.
     - Once search is started, use `n`/`N` to find the next/previous match.
     - Unlike in vim, the `<search-string>` does not appear when typed. The use must be responsible for inputting correct
       string blindly.
-- Set history marks and navigate to marks: (TODO)
-    - `m<char>`: Set a mark at the current history item. `<char>` can be any character.
+- Set history marks and navigate to marks:
+    - `m<char>`: Set a mark at the current history item. `<char>` can be any lowercase or uppercase letter
     - <code>&#96;&lt;char&gt;</code>: Go to the history item marked by `<char>`.
 - Miscellaneous
     - `Enter`: Sends the current line. Notice that the next prompt will still be in *Normal* mode.
