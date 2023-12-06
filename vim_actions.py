@@ -70,10 +70,36 @@ class NavigateHistoryOp(SpecialOp):
     def control(self, editor_state_manager, ops):
         hm = editor_state_manager.filter_obj.history_manager
         line, match = hm.search_next() if self.args[0] else hm.search_prev()
+        hm.skip_buffers()
+
         if not line:  # if the match_pattern is not found, don't delete anything
             ops.clear()
         else:
-            hm.skip_buffers()
+            ops.append(line)
+
+
+class SetHistoryMarkOp(SpecialOp):
+    def __init__(self, mark):
+        super().__init__(mark)
+
+    def control(self, editor_state_manager, ops):
+        mark, = self.args
+        hm = editor_state_manager.filter_obj.history_manager
+        hm.skip_buffers()
+        hm.set_mark(mark)
+
+
+class RetrieveHistoryMarkOp(SpecialOp):
+    def __init__(self, mark):
+        super().__init__(mark)
+
+    def control(self, editor_state_manager, ops):
+        mark, = self.args
+        hm = editor_state_manager.filter_obj.history_manager
+        line = hm.retrieve_mark(mark)
+
+        hm.skip_buffers()
+        if line:
             ops.append(line)
 
 
@@ -142,6 +168,9 @@ class ActionEnum(Enum):  # vim-like actions
     dot = b"."  # repeat last change
     u = b"u"  # undo
     ctrl_r = CTRL.R  # redo
+
+    m = b"m"  # set mark
+    backtick = b"`"  # retrieve mark
 
 
 def register_action(action: ActionEnum, transform_cls=None):
@@ -571,6 +600,26 @@ class Redo(Action):
         if not _redo_stack:
             return []
         return self.swap(line, pos, *_redo_stack.pop())
+
+
+@register_action(ActionEnum.m)
+class SetMark(Action):
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        if arg not in ascii_lowercase + ascii_uppercase:
+            return []
+        return [], [SetHistoryMarkOp(arg)]
+
+
+@register_action(ActionEnum.backtick)
+class RetrieveMark(Action):
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        if arg not in ascii_lowercase + ascii_uppercase:
+            return []
+        return self.delete_line(line, pos), [RetrieveHistoryMarkOp(arg)]
 
 
 def get_action(action: ActionEnum):

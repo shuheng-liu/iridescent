@@ -54,19 +54,21 @@ class EditorStateManger:
         return self._state
 
     def normal_buffer(self, key, current_line, cursor_pos):
+        # a list of operations/keystrokes
+        # if the operation is not completed, return None
         if len(key) != 1:
             self._reset_buffers()
-            return []
+            return None
 
         if not self._action_buffer:
             try:
                 self._action_buffer = ActionEnum(key)
             except ValueError:
                 self._reset_buffers()
-                return []
+                return None
 
             action = get_action(self._action_buffer)
-            return self.post_process(action().act(None, current_line, cursor_pos)) if action.N_ARGS == 0 else []
+            return self.post_process(action().act(None, current_line, cursor_pos)) if action.N_ARGS == 0 else None
 
         # Variadic arguments
         action = get_action(self._action_buffer)
@@ -74,12 +76,12 @@ class EditorStateManger:
             self._arg_buffer += key
             if key in action.VARIADIC_ARG_TERMINATORS:
                 return self.post_process(action().act(self._arg_buffer, current_line, cursor_pos))
-            return []
+            return None
 
         try:
             action = ActionEnum(self._action_buffer.value + key)
             self._action_buffer = action
-            return []
+            return None
         except ValueError:
             action = get_action(self._action_buffer)()
             return self.post_process(action.act(key, current_line, cursor_pos))

@@ -98,6 +98,7 @@ class HistoryNavigationHandler(AbstractKeyStrokeHandler):
         return RIGHT * (len(line) - pos) + DELETE * len(line) + new
 
     def handle(self, key, mode):
+        self.filter_obj.history_manager.skip_buffers()
         if key == UP:
             buffer = self.filter_obj.history_manager.go_prev()
         elif key == DOWN:
@@ -194,6 +195,10 @@ class VimActionHandler(NormalModeHandler):
             self.filter_obj.current_line,
             self.filter_obj.cursor_pos,
         )
+        if ops is None:
+            self.filter_obj.history_manager.skip_buffers()
+            return b""
+
         output = b""
         for op in ops:
             if op == Op.LEFT:
@@ -244,6 +249,8 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
         ]
 
     def handle(self, key, mode):
+        self.filter_obj.history_manager.skip_buffers()
+
         if key in [UP, b"k"]:
             buffer = self.filter_obj.history_manager.go_prev()
             return HistoryNavigationHandler._set_history(self, buffer)

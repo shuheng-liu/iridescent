@@ -180,22 +180,17 @@ class InputFilter(IOFilter):
 
         state = self.state_manager.state
         output = b''
-        disable_history_buffer = False
         for handler in self.handlers:
             if handler.accepts_mode(state) and handler.accepts_key(key):
                 self.log(f"Using handler: {handler.__class__.__name__}")
                 output = handler.handle(key, state)
-                if isinstance(handler, HistoryNavigationHandler):
-                    disable_history_buffer = True
-
                 break
 
         if self.state_manager.state == EditorState.NORMAL and self.cursor_pos == len(self.current_line):
             self.move_cursor_left()
             output += LEFT
 
-        if not disable_history_buffer:
-            self.history_manager.set_buffer(self.current_line)
+        self.history_manager.set_buffer(self.current_line)
 
         self.log_key(output, is_old=False)
         self.debug_cursor()

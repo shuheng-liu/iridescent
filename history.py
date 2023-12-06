@@ -27,6 +27,7 @@ class HistoryManager:
         self.search_pattern = None
         self.search_matches = []  # list of (history_index, match) pairs
         self._skip_buffers = 0  # number of times to skip the .set_buffer() operations
+        self._marks_lookup = {}  # mark -> history_index
 
     def _emit(self):
         if self.index == len(self.history):
@@ -101,6 +102,14 @@ class HistoryManager:
             return
         with open(self.file, "a") as f:
             f.writelines(":" + line + "\n" for line in self.history[self.init_size:])
+
+    def set_mark(self, mark):
+        self._marks_lookup[mark] = self.index
+
+    def retrieve_mark(self, mark):
+        if mark in self._marks_lookup:
+            self.index = self._marks_lookup[mark]
+        return self._emit()
 
     def __enter__(self):
         return self
