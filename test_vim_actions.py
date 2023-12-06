@@ -173,23 +173,27 @@ def test_delete(arg, pos, exp_right, exp_delete, exp_clipboard):
         (b'W', 4, 1, 5, "(hey)"),  # '(hey|)'
 
         # same as above, except text object is nonexistent, should always fail
-        (b'[', 0, 0, 0, ""),  # '|(hey)'
-        (b'{', 1, 0, 0, ""),  # '(|hey)'
-        (b'.', 2, 0, 0, ""),  # '(h|ey)'
-        (b'`', 3, 0, 0, ""),  # '(he|y)'
-        (b' ', 4, 0, 0, ""),  # '(hey|)'
+        (b'[', 0, 0, 0, None),  # '|(hey)'
+        (b'{', 1, 0, 0, None),  # '(|hey)'
+        (b'.', 2, 0, 0, None),  # '(h|ey)'
+        (b'`', 3, 0, 0, None),  # '(he|y)'
+        (b' ', 4, 0, 0, None),  # '(hey|)'
 
         # unsupported text object
-        (b'\r', 2, 0, 0, ""),  # '(h|ey)'
+        (b'\r', 2, 0, 0, None),  # '(h|ey)'
     ]
 )
 def test_delete_in_between(arg, pos, exp_right, exp_delete, exp_clipboard):
     from vim_actions import DeleteInBetween
     line = b"(hey)"
     action = DeleteInBetween()
-    output, (clp,) = action.act(arg, line, pos)
+    output, side_effects = action.act(arg, line, pos)
     assert output == exp_right * [Op.RIGHT] + exp_delete * [Op.DELETE]
-    assert clp.arg == (exp_clipboard.encode(),)
+    if exp_clipboard is None:
+        assert side_effects == []
+    else:
+        clp, = side_effects
+        assert clp.args == (exp_clipboard.encode(),)
 
 
 @pytest.mark.parametrize(
