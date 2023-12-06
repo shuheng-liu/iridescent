@@ -138,9 +138,8 @@ or the [online](https://www.vim-hero.com) tutorial first.
         - underscores `_..._`: if `<char>` is underscore `_` (standard Vim doesn't support this, but it's useful when
           editing string concatenations)
         - commas `,...,` if `<char>` is comma `,` (standard Vim doesn't support this, but it's useful when editing lists
-          function calls)
-        - spaces <code>&nbsp;...&nbsp;</code> if `<char>` is space ` ` (standard Vim doesn't support this, but it's
-          essentially an alias for `diW`)
+          and function arguments)
+        - spaces <code>&nbsp;...&nbsp;</code> if `<char>` is space ` ` (essentially an alias for `diW` below)
     - `diw` and `diW`: As a special case to the above, `diw` deletes the word under cursor.
       Capital `w` treats consecutive non-whitespace characters as a word.
       If the current character under cursor is a whitespace, consecutive whitespaces are considered a word.
