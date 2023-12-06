@@ -1,29 +1,25 @@
-# Viris – Vim meets IRIS
+# Iridescent – A better IRIS terminal
 
 ## Usage
 
 ```bash
-viris [-h] [--input-path INPUT_PATH] [--output-path OUTPUT_PATH] [--debug-path DEBUG_PATH] [--history-path HISTORY_PATH] [instance]
+iridescent [-h] [--input-path INPUT_PATH] [--output-path OUTPUT_PATH] [--debug-path DEBUG_PATH] [--history-path HISTORY_PATH] [instance]
 ```
 
 Positional arguments
 
 ```
-  instance (defaults to $IRIS_INSTANCE environment variable)
+instance (defaults to $IRIS_INSTANCE environment variable)
 ```
 
 Optional arguments
 
 ```
-  -h, --help            show the help message and exit
-  --input-path INPUT_PATH, -i INPUT_PATH
-                        location of input logs
-  --output-path OUTPUT_PATH, -o OUTPUT_PATH
-                        location of output logs
-  --debug-path DEBUG_PATH, -d DEBUG_PATH
-                        Location of debugging logs
-  --history-path HISTORY_PATH, -H HISTORY_PATH
-                        Location of history file
+-h, --help                                      Show the help message and exit
+--input-path INPUT_PATH, -i INPUT_PATH          Location of input logs
+--output-path OUTPUT_PATH, -o OUTPUT_PATH       Location of output logs
+--debug-path DEBUG_PATH, -d DEBUG_PATH          Location of debugging logs
+--history-path HISTORY_PATH, -H HISTORY_PATH    Location of history file
 ```
 
 Environment variables
