@@ -45,6 +45,7 @@ class SwitchToNormalHandler(AbstractKeyStrokeHandler):
             self.filter_obj.state_manager.set_normal()
             return self.filter_obj.move_cursor_left()
 
+        self.filter_obj.history_manager.skip_buffers()
         self.filter_obj.state_manager.set_normal()
         return b''
 
@@ -122,6 +123,7 @@ class LeftHandler(AbstractKeyStrokeHandler):
         return key == LEFT
 
     def handle(self, key, mode):
+        self.filter_obj.history_manager.skip_buffers()
         return self.filter_obj.move_cursor_left()
 
 
@@ -133,6 +135,7 @@ class RightHandler(AbstractKeyStrokeHandler):
         return key == RIGHT
 
     def handle(self, key, mode):
+        self.filter_obj.history_manager.skip_buffers()
         return self.filter_obj.move_cursor_right()
 
 
@@ -141,6 +144,7 @@ class OptionLeftHandler(InputModeHandler):
         return key == OPTION.LEFT
 
     def handle(self, key, mode):
+        self.filter_obj.history_manager.skip_buffers()
         return self.filter_obj.move_cursor_left_by_chunk()
 
 
@@ -149,6 +153,7 @@ class OptionRightHandler(InputModeHandler):
         return key == OPTION.RIGHT
 
     def handle(self, key, mode):
+        self.filter_obj.history_manager.skip_buffers()
         return self.filter_obj.move_cursor_right_by_chunk()
 
 
