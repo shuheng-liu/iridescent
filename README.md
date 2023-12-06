@@ -69,7 +69,9 @@ Currently, there are 3 modes supported
 
 In *Normal* mode, viris supports a variety of canonical vim commands.
 These key bindings should feel natural to experienced vim users.
-If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netlify.app/introduction/vimtutor/) first.
+If you haven't used vim before, check out local tutorial
+[`vimtutor(1)`](https://manpages.ubuntu.com/manpages/noble/en/man1/vimtutor.1.html) 
+or the [online](https://www.vim-hero.com) tutorial first.
 
 - Navigation
     - `h`, `l`, `<LEFT>`, `<RIGHT>`: Move cursor left and right.
@@ -149,7 +151,7 @@ If you haven't used vim before, learn about [`vimtutor`](https://vimschool.netli
     - `~`: Switch casing of the current character. I.e., change `a` to `A` and `A` to `a`
     - `u`: Undo previous change. (TODO)
     - `<CTRL-r>`: Redo previous change. (TODO)
-    - `.`: Repeat previous change. (TODO)
+    - `.`: Repeat previous change.
 
 ## Unsupported Vim Features
 

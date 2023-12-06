@@ -14,8 +14,10 @@ ascii_uppercase = ascii_uppercase.encode()
 
 # Used internally to control whether searching forward (with /) or backward (with ?)
 _search_forward = True
-
+# Used by the @register_action decorator to store the mapping from ActionEnum to Action
 _action_lookup = {}
+# Last action and argument, to be used by the repeat (dot) command
+_last_action_arg = None
 
 
 class Op(Enum):
@@ -135,6 +137,8 @@ class ActionEnum(Enum):  # vim-like actions
     n = b"n"  # search next history match
     N = b"N"  # search prev history match
 
+    dot = b"."  # repeat last change
+
 
 def register_action(action: ActionEnum, transform_cls=None):
     if transform_cls is None:
@@ -151,8 +155,8 @@ def __convert_delete_to_change(D):
     assert "Delete" in D.__name__
 
     class C(D):
-        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-            ops, sops = D.act(self, arg, line, pos)
+        def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+            ops, sops = D.on_act(self, arg, line, pos)
             return ops, sops + [SetInsertOp()]
 
     C.__name__ = D.__name__.replace("Delete", "Change")
@@ -164,8 +168,8 @@ def __convert_delete_to_yank(D):
     assert "Delete" in D.__name__
 
     class Y(D):
-        def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-            return [], D.act(self, arg, line, pos)[1]
+        def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+            return [], D.on_act(self, arg, line, pos)[1]
 
     Y.__name__ = D.__name__.replace("Delete", "Yank")
 
@@ -173,8 +177,8 @@ def __convert_delete_to_yank(D):
 
 
 class Action(ABC):
-    NO_ARG = False
-    VARIADIC_ARG_TERMINATORS = None
+    N_ARGS = ...
+    VARIADIC_ARG_TERMINATORS = ...
 
     def left(self, n):
         return [Op.LEFT] * n
@@ -185,8 +189,13 @@ class Action(ABC):
     def delete(self, n):
         return [Op.DELETE] * n
 
-    @abstractmethod
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        global _last_action_arg
+        _last_action_arg = (self.__class__, arg)
+        return self.on_act(arg, line, pos)
+
+    @abstractmethod
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         pass
 
     def delete_line(self, arg: bytes, line: bytes, pos: int):
@@ -195,7 +204,9 @@ class Action(ABC):
 
 @register_action(ActionEnum.f)
 class Find(Action):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_find(line, pos, arg, capital=False)
         if not 0 <= new < len(line):
             return []
@@ -204,7 +215,9 @@ class Find(Action):
 
 @register_action(ActionEnum.t)
 class Till(Action):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_till(line, pos, arg, capital=False)
         if not 0 <= new < len(line):
             return []
@@ -213,7 +226,9 @@ class Till(Action):
 
 @register_action(ActionEnum.F)
 class FindBackwards(Action):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_find(line, pos, arg, capital=True)
         if not 0 <= new < len(line):
             return []
@@ -222,7 +237,9 @@ class FindBackwards(Action):
 
 @register_action(ActionEnum.T)
 class TillBackwards(Action):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new = vim_till(line, pos, arg, capital=True)
         if not 0 <= new < len(line):
             return []
@@ -233,6 +250,7 @@ class TillBackwards(Action):
 @register_action(ActionEnum.c, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.d)
 class Delete(Action):
+    N_ARGS = 1
     _VF_CAP_OFFSET_LOOKUP = {
         b"b": (vim_word_begin, False, 0),
         b"B": (vim_word_begin, True, 0),
@@ -244,7 +262,7 @@ class Delete(Action):
         b"0": (vim_line_begin, False, 0),
     }
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert 0 <= pos < len(line)
 
         # special case for "dd", "cc", and "yy"
@@ -267,7 +285,9 @@ class Delete(Action):
 @register_action(ActionEnum.ci, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.di)
 class DeleteInBetween(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg == b'w' or arg == b'W':
             begin, end = vim_word_boundary(line, pos, capital=(arg == b'W'))
             return self.right(end - pos + 1) + self.delete(end - begin + 1), [ClipboardCopyOp(line[begin: end + 1])]
@@ -292,7 +312,9 @@ class DeleteInBetween(Delete):
 @register_action(ActionEnum.ct, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.dt)
 class DeleteTill(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_till(line, pos, arg, False)
         if not 0 <= new_pos < len(line):
             return [], []
@@ -304,7 +326,9 @@ class DeleteTill(Delete):
 @register_action(ActionEnum.cT, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.dT)
 class DeleteTillBackwards(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_till(line, pos, arg, True)
         if not 0 <= new_pos < len(line):
             return [], []
@@ -316,7 +340,9 @@ class DeleteTillBackwards(Delete):
 @register_action(ActionEnum.cf, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.df)
 class DeleteFind(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_find(line, pos, arg, False)
         if not 0 <= new_pos < len(line):
             return [], []
@@ -328,7 +354,9 @@ class DeleteFind(Delete):
 @register_action(ActionEnum.cF, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.dF)
 class DeleteFindBackwards(Delete):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         new_pos = vim_find(line, pos, arg, True)
         if not 0 <= new_pos < len(line):
             return [], []
@@ -339,70 +367,72 @@ class DeleteFindBackwards(Delete):
 @register_action(ActionEnum.s, transform_cls=__convert_delete_to_change)
 @register_action(ActionEnum.x)
 class DeleteOneChar(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return self.right(1) + self.delete(1), [ClipboardCopyOp(line[pos: pos + 1])]
 
 
 @register_action(ActionEnum.i)
 class Insert(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [], [SetInsertOp()]
 
 
 @register_action(ActionEnum.I)
 class InsertAtLineStart(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return self.left(pos), [SetInsertOp()]
 
 
 @register_action(ActionEnum.a)
 class Append(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return self.right(1), [SetInsertOp()]
 
 
 @register_action(ActionEnum.A)
 class AppendAtLineEnd(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return self.right(len(line) - pos), [SetInsertOp()]
 
 
 @register_action(ActionEnum.P)
 class PasteBefore(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [clipboard.paste()]
 
 
 @register_action(ActionEnum.p)
 class PasteAfter(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [Op.RIGHT, clipboard.paste(), Op.LEFT]
 
 
 @register_action(ActionEnum.r)
 class ReplaceCharacter(Action):
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    N_ARGS = 1
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         if arg not in printable or arg == "\n":
             return []
 
@@ -411,16 +441,16 @@ class ReplaceCharacter(Action):
 
 @register_action(ActionEnum.R)
 class EnterReplaceMode(Action):
-    NO_ARG = True
+    N_ARGS = 0
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         return [], [SetReplaceOp()]
 
 
 @register_action(ActionEnum.tilde)
 class SwitchCasing(Action):
-    NO_ARG = True
+    N_ARGS = 0
     CASE_MAP = {
         k: v
         for k, v in zip(
@@ -429,7 +459,7 @@ class SwitchCasing(Action):
         )
     }
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
         ch = line[pos]
         if ch not in self.CASE_MAP:
@@ -438,10 +468,11 @@ class SwitchCasing(Action):
 
 
 class StartSearchAbstract(Action):
+    N_ARGS = -1
     VARIADIC_ARG_TERMINATORS = [b"\r"]
     IS_FORWARD = ...
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg.endswith(b"\r") and isinstance(self.IS_FORWARD, bool)
         pattern = arg[:-1].decode()
         ops = self.delete_line(arg, line, pos)
@@ -463,10 +494,10 @@ class StartSearchBackward(StartSearchAbstract):
 
 
 class SearchNavigate(Action):
-    NO_ARG = True
+    N_ARGS = 0
     SEARCH_FORWARD = ...
 
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None and isinstance(self.SEARCH_FORWARD, bool)
         ops = self.delete_line(arg, line, pos)
         global _search_forward
@@ -483,10 +514,38 @@ class SearchPrev(SearchNavigate):
     SEARCH_FORWARD = False
 
 
+@register_action(ActionEnum.dot)
+class SingleRepeat(Action):
+    N_ARGS = 0
+
+    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        # override parent method because we don't want to register this action
+        return self.on_act(arg, line, pos)
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        assert arg is None
+        global _last_action_arg
+        if _last_action_arg is None:
+            return []
+        action, arg = _last_action_arg
+        return action().act(arg, line, pos)
+
+
 def get_action(action: ActionEnum):
     return _action_lookup[action]
 
 
+# import-time checks
 for action in ActionEnum:
     if action not in _action_lookup:
-        warnings.warn(f"Action {action} is not implemented")
+        warnings.warn(f"Action `{action.name}` is not implemented")
+        continue
+
+    cls = _action_lookup[action]
+    assert isinstance(cls.N_ARGS, int), f"{cls.__name__}.N_ARGS must be an integer, got {cls.N_ARGS}"
+    if cls.N_ARGS == -1:
+        assert isinstance(cls.VARIADIC_ARG_TERMINATORS, list)
+        for term in cls.VARIADIC_ARG_TERMINATORS:
+            assert isinstance(term, bytes)
+    else:
+        assert cls.VARIADIC_ARG_TERMINATORS is ...

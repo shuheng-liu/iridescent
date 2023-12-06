@@ -64,11 +64,11 @@ class EditorStateManger:
                 return []
 
             action = get_action(self._action_buffer)
-            return self.post_process(action().act(None, current_line, cursor_pos)) if action.NO_ARG else []
+            return self.post_process(action().act(None, current_line, cursor_pos)) if action.N_ARGS == 0 else []
 
         # Variadic arguments
         action = get_action(self._action_buffer)
-        if action.VARIADIC_ARG_TERMINATORS:
+        if action.N_ARGS == -1:
             self._arg_buffer += key
             if key in action.VARIADIC_ARG_TERMINATORS:
                 return self.post_process(action().act(self._arg_buffer, current_line, cursor_pos))
