@@ -3,7 +3,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from string import ascii_lowercase, ascii_uppercase
 from typing import List, Union, Tuple
-from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE
+from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE, CTRL
 from utils import printable
 from utils import vim_word, vim_word_begin, vim_word_end, vim_word_boundary, vim_line_begin, vim_line_end
 from utils import vim_find, vim_till
@@ -18,6 +18,8 @@ _search_forward = True
 _action_lookup = {}
 # Last action and argument, to be used by the repeat (dot) command
 _last_action_arg = None
+# redo and undo stacks, used by the repeat and undo/redo commands
+_redo_stack, _undo_stack = [], []
 
 
 class Op(Enum):
@@ -138,6 +140,8 @@ class ActionEnum(Enum):  # vim-like actions
     N = b"N"  # search prev history match
 
     dot = b"."  # repeat last change
+    u = b"u"  # undo
+    ctrl_r = CTRL.R  # redo
 
 
 def register_action(action: ActionEnum, transform_cls=None):
@@ -179,6 +183,9 @@ def __convert_delete_to_yank(D):
 class Action(ABC):
     N_ARGS = ...
     VARIADIC_ARG_TERMINATORS = ...
+    REPEATABLE = True  # controls whether this action can be repeated with the dot command
+    UNDOABLE = True  # controls whether this action can be undone
+    PRESERVE_REDO_STACK = False  # controls whether this action clears the redo stack
 
     def left(self, n):
         return [Op.LEFT] * n
@@ -190,16 +197,25 @@ class Action(ABC):
         return [Op.DELETE] * n
 
     def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-        global _last_action_arg
-        _last_action_arg = (self.__class__, arg)
+        if self.REPEATABLE:
+            global _last_action_arg
+            _last_action_arg = (self.__class__, arg)
+        if self.UNDOABLE:
+            if (not _undo_stack) or _undo_stack[-1] != (line, pos):
+                _undo_stack.append((line, pos))
+        if not self.PRESERVE_REDO_STACK:
+            _redo_stack.clear()
         return self.on_act(arg, line, pos)
 
     @abstractmethod
     def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         pass
 
-    def delete_line(self, arg: bytes, line: bytes, pos: int):
+    def delete_line(self, line: bytes, pos: int):
         return self.right(len(line) - pos) + self.delete(len(line))
+
+    def swap(self, line, pos, new_line, new_pos):
+        return self.delete_line(line, pos) + [new_line] + self.left(len(new_line) - new_pos)
 
 
 @register_action(ActionEnum.f)
@@ -267,7 +283,7 @@ class Delete(Action):
 
         # special case for "dd", "cc", and "yy"
         if arg.decode() == self.__class__.__name__.lower()[0]:
-            return self.delete_line(arg, line, pos), [ClipboardCopyOp(line)]
+            return self.delete_line(line, pos), [ClipboardCopyOp(line)]
 
         if arg not in self._VF_CAP_OFFSET_LOOKUP:
             return [], []
@@ -475,7 +491,7 @@ class StartSearchAbstract(Action):
     def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg.endswith(b"\r") and isinstance(self.IS_FORWARD, bool)
         pattern = arg[:-1].decode()
-        ops = self.delete_line(arg, line, pos)
+        ops = self.delete_line(line, pos)
         special_ops = [
             StartHistorySearchOp(self.IS_FORWARD, pattern),
             NavigateHistoryOp(self.IS_FORWARD)
@@ -499,7 +515,7 @@ class SearchNavigate(Action):
 
     def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None and isinstance(self.SEARCH_FORWARD, bool)
-        ops = self.delete_line(arg, line, pos)
+        ops = self.delete_line(line, pos)
         global _search_forward
         return ops, [NavigateHistoryOp(not self.SEARCH_FORWARD ^ _search_forward)]
 
@@ -517,10 +533,7 @@ class SearchPrev(SearchNavigate):
 @register_action(ActionEnum.dot)
 class SingleRepeat(Action):
     N_ARGS = 0
-
-    def act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-        # override parent method because we don't want to register this action
-        return self.on_act(arg, line, pos)
+    REPEATABLE = False  # SingleRepeat itself cannot be repeated
 
     def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
         assert arg is None
@@ -529,6 +542,35 @@ class SingleRepeat(Action):
             return []
         action, arg = _last_action_arg
         return action().act(arg, line, pos)
+
+
+@register_action(ActionEnum.u)
+class Undo(Action):
+    N_ARGS = 0
+    REPEATABLE = False
+    UNDOABLE = False
+    PRESERVE_REDO_STACK = True
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        assert arg is None
+        if not _undo_stack:
+            return []
+        if (not _redo_stack) or _redo_stack[-1] != (line, pos):
+            _redo_stack.append((line, pos))
+        return self.swap(line, pos, *_undo_stack.pop())
+
+
+@register_action(ActionEnum.ctrl_r)
+class Redo(Action):
+    N_ARGS = 0
+    REPEATABLE = False
+    PRESERVE_REDO_STACK = True
+
+    def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
+        assert arg is None
+        if not _redo_stack:
+            return []
+        return self.swap(line, pos, *_redo_stack.pop())
 
 
 def get_action(action: ActionEnum):
@@ -544,8 +586,10 @@ for action in ActionEnum:
     cls = _action_lookup[action]
     assert isinstance(cls.N_ARGS, int), f"{cls.__name__}.N_ARGS must be an integer, got {cls.N_ARGS}"
     if cls.N_ARGS == -1:
-        assert isinstance(cls.VARIADIC_ARG_TERMINATORS, list)
+        error_msg = (f"{cls.__name__}.VARIADIC_ARG_TERMINATORS must be a list of bytes when N_ARGS=-1, "
+                     f"got {cls.VARIADIC_ARG_TERMINATORS}")
+        assert isinstance(cls.VARIADIC_ARG_TERMINATORS, list), error_msg
         for term in cls.VARIADIC_ARG_TERMINATORS:
-            assert isinstance(term, bytes)
+            assert isinstance(term, bytes), error_msg
     else:
         assert cls.VARIADIC_ARG_TERMINATORS is ...

@@ -1,6 +1,6 @@
 import time
 from enum import Enum
-from vim_actions import ActionEnum, get_action, Op
+from vim_actions import ActionEnum, get_action, _redo_stack
 
 
 def _set_cursor_vertical():
@@ -33,6 +33,8 @@ class EditorStateManger:
         self._arg_buffer = b""
 
     def set_normal(self):  # set to normal mode
+        if self._state != EditorState.NORMAL:
+            _redo_stack.clear()
         self._state = EditorState.NORMAL
         self._reset_buffers()
         _set_cursor_block()

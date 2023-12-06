@@ -11,6 +11,10 @@ class SIG:
     BELL = b'\x07'
 
 
+class CTRL:
+    R = b'\x12'
+
+
 DELETE = b'\x7f'
 ESCAPE = b'\x1b'
 ENTER = b'\r'

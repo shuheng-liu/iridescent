@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from editor import EditorState
-from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE
+from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE, CTRL
 from vim_actions import Op
 from utils import printable, vim_word, vim_word_begin, vim_word_end, vim_pair
 
@@ -181,10 +181,12 @@ class NormalModeHandler(AbstractKeyStrokeHandler):
 
 class VimActionHandler(NormalModeHandler):
     def accepts_key(self, key):
-        return key.decode().isprintable() or (
-                self.filter_obj.state_manager._arg_buffer
-                and key == b"\r"
-        )
+        if key.decode().isprintable():
+            return True
+        if self.filter_obj.state_manager._arg_buffer and key == b"\r":
+            return True
+        if (not self.filter_obj.state_manager._action_buffer) and key == CTRL.R:
+            return True
 
     def handle(self, key, mode):
         ops = self.filter_obj.state_manager.normal_buffer(

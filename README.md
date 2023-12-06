@@ -70,7 +70,7 @@ Currently, there are 3 modes supported
 In *Normal* mode, viris supports a variety of canonical vim commands.
 These key bindings should feel natural to experienced vim users.
 If you haven't used vim before, check out local tutorial
-[`vimtutor(1)`](https://manpages.ubuntu.com/manpages/noble/en/man1/vimtutor.1.html) 
+[`vimtutor(1)`](https://manpages.ubuntu.com/manpages/noble/en/man1/vimtutor.1.html)
 or the [online](https://www.vim-hero.com) tutorial first.
 
 - Navigation
@@ -149,8 +149,8 @@ or the [online](https://www.vim-hero.com) tutorial first.
 - Miscellaneous
     - `Enter`: Sends the current line. Notice that the next prompt will still be in *Normal* mode.
     - `~`: Switch casing of the current character. I.e., change `a` to `A` and `A` to `a`
-    - `u`: Undo previous change. (TODO)
-    - `<CTRL-r>`: Redo previous change. (TODO)
+    - `u`: Undo previous change.
+    - `<CTRL-r>`: Redo previous change.
     - `.`: Repeat previous change.
 
 ## Unsupported Vim Features
