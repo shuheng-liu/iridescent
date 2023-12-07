@@ -70,6 +70,8 @@ class InputFilter(IOFilter):
         return self.current_line[self.cursor_pos - 1]
 
     def reset_line(self):
+        from .color_utils import FgColor, _set_fg_color
+        _set_fg_color(FgColor.RED)
         self.current_line = b""
         self.cursor_pos = 0
         self.history_manager.ingest()
@@ -200,8 +202,18 @@ class OutputFilter(IOFilter):
         super().__init__(file=file, dlogger=dlogger)
 
     def __call__(self, content):
+        from .color_utils import TextStyle
+
         if self.file:
             with open(self.file, 'a') as f:
                 f.write(repr(content) + "\n")
+
+        if content.endswith(b">"):
+            try:
+                last_index = content.rindex(b"\r\n")
+            except ValueError:
+                return content
+            if b"<" not in content[last_index:]:
+                content = content[:last_index] + TextStyle.RESET.value.encode() + content[last_index:]
 
         return content

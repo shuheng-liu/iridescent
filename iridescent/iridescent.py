@@ -9,10 +9,6 @@ from .keys import set_keys
 
 def main():
     with HistoryManager(opt.history_path) as hm, CursorManager():
-        debug_logger = DebugLogger(opt.debug_path)
-        input_filter = InputFilter(opt.input_path, dlogger=debug_logger, history_manager=hm)
-        output_filter = OutputFilter(opt.output_path, dlogger=debug_logger)
-
         if not key_config_file.exists():
             print("Keyboard layout not found. Detecting keyboard layout...")
             detect_keys()
@@ -20,6 +16,10 @@ def main():
         print("Loading keyboard layout from", key_config_file)
         print("If you want to change the keyboard layout, delete this file and restart iridescent")
         set_keys()
+
+        debug_logger = DebugLogger(opt.debug_path)
+        input_filter = InputFilter(opt.input_path, dlogger=debug_logger, history_manager=hm)
+        output_filter = OutputFilter(opt.output_path, dlogger=debug_logger)
 
         with pe.spawnu(f"iris terminal {opt.instance}") as c:
             c.setecho(False)
