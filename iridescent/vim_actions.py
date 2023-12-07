@@ -3,7 +3,7 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from string import ascii_lowercase, ascii_uppercase
 from typing import List, Union, Tuple
-from .keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE, CTRL
+from .keys import KEY, CTRL
 from .utils import printable
 from .utils import vim_word, vim_word_begin, vim_word_end, vim_word_boundary, vim_line_begin, vim_line_end
 from .utils import vim_find, vim_till
@@ -23,9 +23,9 @@ _redo_stack, _undo_stack = [], []
 
 
 class Op(Enum):
-    LEFT = _LEFT
-    RIGHT = _RIGHT
-    DELETE = _DELETE
+    LEFT = KEY.LEFT
+    RIGHT = KEY.RIGHT
+    DELETE = KEY.DELETE
 
 
 class SpecialOp(ABC):

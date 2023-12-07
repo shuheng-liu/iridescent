@@ -5,4 +5,3 @@ class CursorManager:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         print("\x1B[5 q", end="", flush=True)
-

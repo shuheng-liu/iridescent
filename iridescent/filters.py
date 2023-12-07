@@ -77,9 +77,7 @@ class InputFilter(IOFilter):
 
     @staticmethod
     def is_line_end(key):
-        if b"\r" in key or b"\n" in key:
-            return True
-        if key in [OPTION.LEFT, OPTION.RIGHT, OPTION.UP, OPTION.DOWN, SIG.INT]:
+        if key in [b"\r", b"\n", b"\r\n", SIG.INT]:  # for cross-platform compatibility
             return True
         return False
 
@@ -117,7 +115,7 @@ class InputFilter(IOFilter):
         self.cursor_pos -= by
         if self.cursor_pos < 0:
             self.cursor_pos = 0
-        return DELETE * by
+        return KEY.DELETE * by
 
     def delete_by_chunk(self):
         new_pos = _chunk_leftmost(self.current_line, self.cursor_pos)
@@ -128,12 +126,12 @@ class InputFilter(IOFilter):
         self.current_line = self.current_line[:new_pos] + self.current_line[self.cursor_pos:]
         count = self.cursor_pos - new_pos
         self.cursor_pos = new_pos
-        return DELETE * count
+        return KEY.DELETE * count
 
     def move_cursor_left(self, by=1):
         old_pos = self.cursor_pos
         self.cursor_pos = max(0, self.cursor_pos - by)
-        return LEFT * (old_pos - self.cursor_pos)
+        return KEY.LEFT * (old_pos - self.cursor_pos)
 
     def move_cursor_left_by_chunk(self):
         new_pos = _chunk_leftmost(self.current_line, self.cursor_pos)
@@ -142,7 +140,7 @@ class InputFilter(IOFilter):
 
         count = self.cursor_pos - new_pos
         self.move_cursor_left(count)
-        return LEFT * count
+        return KEY.LEFT * count
 
     def move_cursor_right(self, by=1):
         output = b""
@@ -152,7 +150,7 @@ class InputFilter(IOFilter):
             by = len(by)
         old_pos = self.cursor_pos
         self.cursor_pos = min(len(self.current_line), self.cursor_pos + by)
-        return output or RIGHT * (self.cursor_pos - old_pos)
+        return output or KEY.RIGHT * (self.cursor_pos - old_pos)
 
     def move_cursor_right_by_chunk(self):
         new_pos = _chunk_rightmost(self.current_line, self.cursor_pos)
@@ -161,7 +159,7 @@ class InputFilter(IOFilter):
 
         count = new_pos - self.cursor_pos
         self.move_cursor_right(count)
-        return RIGHT * count
+        return KEY.RIGHT * count
 
     def move_cursor_vim(self, vf, capital):
         assert self.state_manager.state == EditorState.NORMAL
@@ -188,7 +186,7 @@ class InputFilter(IOFilter):
 
         if self.state_manager.state == EditorState.NORMAL and self.cursor_pos == len(self.current_line):
             self.move_cursor_left()
-            output += LEFT
+            output += KEY.LEFT
 
         self.history_manager.set_buffer(self.current_line)
 

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from .editor import EditorState
-from .keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE, CTRL
+from .keys import KEY, OPTION, SIG, ESCAPE_SEQUENCE, CTRL
 from .vim_actions import Op
 from .utils import printable, vim_word, vim_word_begin, vim_word_end, vim_pair
 
@@ -38,7 +38,7 @@ class SwitchToNormalHandler(AbstractKeyStrokeHandler):
         return True
 
     def accepts_key(self, key):
-        return key == ESCAPE
+        return key == KEY.ESCAPE
 
     def handle(self, key, mode):
         if self.filter_obj.state_manager.state == EditorState.INSERT:
@@ -69,7 +69,7 @@ class DeleteHandler(AbstractKeyStrokeHandler):
         return mode in [EditorState.INSERT, EditorState.REPLACE]
 
     def accepts_key(self, key):
-        return key == DELETE
+        return key == KEY.DELETE
 
     def handle(self, key, mode):
         return self.filter_obj.delete()
@@ -88,7 +88,7 @@ class HistoryNavigationHandler(AbstractKeyStrokeHandler):
         return mode in [EditorState.INSERT, EditorState.NORMAL, EditorState.REPLACE]
 
     def accepts_key(self, key):
-        return key in [UP, DOWN]
+        return key in [KEY.UP, KEY.DOWN]
 
     def _set_history(self, new):
         line = self.filter_obj.current_line
@@ -96,13 +96,13 @@ class HistoryNavigationHandler(AbstractKeyStrokeHandler):
         # self.filter_obj.debug(line=line, pos=pos)
         self.filter_obj.current_line = new
         self.filter_obj.cursor_pos = len(new)
-        return RIGHT * (len(line) - pos) + DELETE * len(line) + new
+        return KEY.RIGHT * (len(line) - pos) + KEY.DELETE * len(line) + new
 
     def handle(self, key, mode):
         self.filter_obj.history_manager.skip_buffers()
-        if key == UP:
+        if key == KEY.UP:
             buffer = self.filter_obj.history_manager.go_prev()
-        elif key == DOWN:
+        elif key == KEY.DOWN:
             buffer = self.filter_obj.history_manager.go_next()
         return self._set_history(buffer)
 
@@ -120,7 +120,7 @@ class LeftHandler(AbstractKeyStrokeHandler):
         return mode in [EditorState.INSERT, EditorState.NORMAL, EditorState.REPLACE]
 
     def accepts_key(self, key):
-        return key == LEFT
+        return key == KEY.LEFT
 
     def handle(self, key, mode):
         self.filter_obj.history_manager.skip_buffers()
@@ -132,7 +132,7 @@ class RightHandler(AbstractKeyStrokeHandler):
         return mode in [EditorState.INSERT, EditorState.NORMAL, EditorState.REPLACE]
 
     def accepts_key(self, key):
-        return key == RIGHT
+        return key == KEY.RIGHT
 
     def handle(self, key, mode):
         self.filter_obj.history_manager.skip_buffers()
@@ -163,7 +163,7 @@ class LineEndHandler(InputModeHandler):
 
     def handle(self, key, mode):
         self.filter_obj.reset_line()
-        return ENTER
+        return KEY.ENTER
 
 
 class DefaultHandler(AbstractKeyStrokeHandler):
@@ -208,13 +208,13 @@ class VimActionHandler(NormalModeHandler):
         for op in ops:
             if op == Op.LEFT:
                 self.filter_obj.move_cursor_left()
-                output += LEFT
+                output += KEY.LEFT
             elif op == Op.RIGHT:
                 self.filter_obj.move_cursor_right()
-                output += RIGHT
+                output += KEY.RIGHT
             elif op == Op.DELETE:
                 self.filter_obj.delete()
-                output += DELETE
+                output += KEY.DELETE
             elif isinstance(op, (int, bytes)):
                 if isinstance(op, int):
                     op = op.to_bytes((op.bit_length() + 7) // 8, "big")
@@ -241,8 +241,8 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
         if self.filter_obj.state_manager._action_buffer:
             return False
         return key in [
-            UP, DOWN,
-            LEFT, RIGHT,
+            KEY.UP, KEY.DOWN,
+            KEY.LEFT, KEY.RIGHT,
             b"j", b"k",
             b"h", b"l",
             b"b", b"w",
@@ -256,11 +256,11 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
     def handle(self, key, mode):
         self.filter_obj.history_manager.skip_buffers()
 
-        if key in [UP, b"k"]:
+        if key in [KEY.UP, b"k"]:
             buffer = self.filter_obj.history_manager.go_prev()
             return HistoryNavigationHandler._set_history(self, buffer)
 
-        if key in [DOWN, b"j"]:
+        if key in [KEY.DOWN, b"j"]:
             buffer = self.filter_obj.history_manager.go_next()
             return HistoryNavigationHandler._set_history(self, buffer)
 
@@ -268,22 +268,22 @@ class VimNavigationHandler(NormalModeHandler, HistoryNavigationHandler):
             buffer = self.filter_obj.history_manager.retrieve_buffer()
             return HistoryNavigationHandler._set_history(self, buffer)
 
-        if key in [LEFT, b"h"]:
+        if key in [KEY.LEFT, b"h"]:
             self.filter_obj.move_cursor_left()
-            return LEFT
+            return KEY.LEFT
 
-        if key in [RIGHT, b"l"]:
+        if key in [KEY.RIGHT, b"l"]:
             return self.filter_obj.move_cursor_right()
 
         if key == b"0":
             count = self.filter_obj.cursor_pos
             self.filter_obj.move_cursor_left(count)
-            return count * LEFT
+            return count * KEY.LEFT
 
         if key == b"$":
             count = len(self.filter_obj.current_line) - self.filter_obj.cursor_pos
             self.filter_obj.move_cursor_right(count)
-            return count * RIGHT
+            return count * KEY.RIGHT
 
         vf_lookup = {
             b"w": (vim_word, False),
