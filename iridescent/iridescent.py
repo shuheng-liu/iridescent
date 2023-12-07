@@ -1,4 +1,9 @@
 import pexpect as pe
+import signal
+import fcntl
+import struct
+import termios
+import sys
 from .filters import DebugLogger, IOFilter
 from .history import HistoryManager
 from .cursor import CursorManager
@@ -21,6 +26,16 @@ def main():
         io_filter = IOFilter(opt.log_path, debug_logger, history_manager=hm)
 
         with pe.spawnu(f"iris terminal {opt.instance}") as c:
+
+            # See .interact() docs at https://pexpect.readthedocs.io/en/stable/api/pexpect.html#spawn-class
+            def sigwinch_passthrough(sig, data):
+                s = struct.pack("HHHH", 0, 0, 0, 0)
+                a = struct.unpack('hhhh', fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, s))
+                if not c.closed:
+                    c.setwinsize(a[0], a[1])
+
+            signal.signal(signal.SIGWINCH, sigwinch_passthrough)
+
             c.setecho(False)
 
             if username and password:
