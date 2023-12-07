@@ -3,4 +3,5 @@
 *egg-info/**
 Dockerfile.temporary
 *pyc
+**/.DS_Store
 
