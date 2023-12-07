@@ -1,9 +1,9 @@
 import pexpect as pe
-from .filters import DebugLogger, InputFilter, OutputFilter
+from .filters import DebugLogger, IOFilter
 from .history import HistoryManager
 from .cursor import CursorManager
 from .cli import opt, username, password
-from .setup_keyboard import detect_keys, key_config_file, ESCAPE_SEQUENCE
+from .keyboard import detect_keys, key_config_file, ESCAPE_SEQUENCE
 from .keys import set_keys
 
 
@@ -18,8 +18,7 @@ def main():
         set_keys()
 
         debug_logger = DebugLogger(opt.debug_path)
-        input_filter = InputFilter(opt.input_path, dlogger=debug_logger, history_manager=hm)
-        output_filter = OutputFilter(opt.output_path, dlogger=debug_logger)
+        io_filter = IOFilter(opt.log_path, debug_logger, history_manager=hm)
 
         with pe.spawnu(f"iris terminal {opt.instance}") as c:
             c.setecho(False)
@@ -34,8 +33,8 @@ def main():
             print(r"You are communicating with IRIS via pexpect. The escape character is ^]")
             c.interact(
                 escape_character=ESCAPE_SEQUENCE.decode(),
-                input_filter=input_filter,
-                output_filter=output_filter
+                input_filter=io_filter.filter_input,
+                output_filter=io_filter.filter_output
             )
 
 

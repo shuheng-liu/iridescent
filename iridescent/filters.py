@@ -38,30 +38,21 @@ class DebugLogger:
             f.write("\n")
 
 
-class IOFilter(ABC):
-    def __init__(self, file, dlogger) -> None:
+class IOFilter:
+    def __init__(self, file, dlogger, history_manager=None):
         self.file = file
         self.dlogger = dlogger
-
-    def debug(self, *args, **kwargs):
-        if not self.dlogger:
-            return
-        self.dlogger.log(*args, **kwargs)
-
-    @abstractmethod
-    def __call__(self, key: bytes) -> bytes:
-        pass
-
-
-class InputFilter(IOFilter):
-    def __init__(self, file=None, dlogger=None, history_manager=None):
-        super().__init__(file=file, dlogger=dlogger)
         self.current_line = None
         self.cursor_pos = 0
         self.state_manager = EditorStateManger(filter_obj=self)
         self.history_manager = history_manager
         self.handlers = [H(self) for H in HANDLER_CLASSES]
         self.reset_line()
+
+    def debug(self, *args, **kwargs):
+        if not self.dlogger:
+            return
+        self.dlogger.log(*args, **kwargs)
 
     @property
     def current_byte(self):
@@ -70,8 +61,8 @@ class InputFilter(IOFilter):
         return self.current_line[self.cursor_pos - 1]
 
     def reset_line(self):
-        from .color_utils import FgColor, _set_fg_color
-        _set_fg_color(FgColor.RED)
+        from .color_utils import FgColor
+        FgColor.RED.set()
         self.current_line = b""
         self.cursor_pos = 0
         self.history_manager.ingest()
@@ -86,11 +77,6 @@ class InputFilter(IOFilter):
     @staticmethod
     def contains_printable(key):
         return any(k in nonwhitespace_printable for k in key)
-
-    def debug(self, *args, **kwargs):
-        if not self.dlogger:
-            return
-        self.dlogger.log(*args, **kwargs)
 
     def debug_cursor(self):
         repr = self.current_line[:self.cursor_pos] + b"|" + self.current_line[self.cursor_pos:]
@@ -172,7 +158,7 @@ class InputFilter(IOFilter):
         else:
             return self.move_cursor_left(-right)
 
-    def __call__(self, key):
+    def filter_input(self, key):
         if not isinstance(key, bytes):
             raise TypeError("InputFilter only accepts bytes as input")
 
@@ -196,17 +182,12 @@ class InputFilter(IOFilter):
         self.debug_cursor()
         return output
 
-
-class OutputFilter(IOFilter):
-    def __init__(self, file, dlogger):
-        super().__init__(file=file, dlogger=dlogger)
-
-    def __call__(self, content):
+    def filter_output(self, content):
         from .color_utils import TextStyle
 
         if self.file:
             with open(self.file, 'a') as f:
-                f.write(repr(content) + "\n")
+                f.write("Output = " + repr(content) + "\n")
 
         if content.endswith(b">"):
             try:

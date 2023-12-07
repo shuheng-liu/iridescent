@@ -10,12 +10,14 @@ def _fetch_credentials():
     )
 
 
+default_history = os.path.expanduser("~/.iris_history")
+
 _parser = argparse.ArgumentParser()
 _parser.add_argument("instance", nargs='?', default=os.environ.get("IRIS_INSTANCE", None), type=str)
-_parser.add_argument("--input-path", "-i", type=str, help="location of input logs")
-_parser.add_argument("--output-path", "-o", type=str, help="location of output logs")
-_parser.add_argument("--debug-path", "-d", type=str, help="Location of debugging logs")
-_parser.add_argument("--history-path", "-H", type=str, help="Location of history files")
+_parser.add_argument("--log-path", "-l", type=str, help="Location of input and output logs")
+_parser.add_argument("--debug-path", "-d", type=str, help="Location of debugging outputs")
+_parser.add_argument("--history-path", "-H", type=str, default=default_history,
+                     help="Location of history file. Defaults to ~/.iris_history")
 opt = _parser.parse_args()
 
 if opt.instance is None:
@@ -27,11 +29,11 @@ if opt.instance is None:
     sys.exit(1)
 
 username, password = _fetch_credentials()
-if (not username or not password) and (opt.input_path or opt.output_path or opt.debug_path):
+if (not username or not password) and (opt.log_path or opt.debug_path):
     yn = input(
         "Credentials are not specified in environment variables $IRIS_USERNAME and $IRIS_PASSWORD.\n"
         "Consider specifying those or turn off logging. Otherwise, your credentials might be logged.\n"
-        "Proceed? (y/N) "
+        "Ignore the warning and proceed? (y/N) "
     )
     if not yn.lower().startswith("y"):
         print("Aborting due to security concerns.")

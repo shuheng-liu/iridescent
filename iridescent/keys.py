@@ -1,4 +1,4 @@
-from .setup_keyboard import load_strokes, ESCAPE_SEQUENCE
+from .keyboard import load_strokes, ESCAPE_SEQUENCE
 
 
 class OPTION:
