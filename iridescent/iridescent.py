@@ -1,11 +1,11 @@
-#!/Users/shuliu/PycharmProjects/pexpect/venv/bin/python3
 import pexpect as pe
-from filters import DebugLogger, InputFilter, OutputFilter
-from history import HistoryManager
-from cursor import CursorManager
-from cli import opt, username, password
+from .filters import DebugLogger, InputFilter, OutputFilter
+from .history import HistoryManager
+from .cursor import CursorManager
+from .cli import opt, username, password
 
-if __name__ == "__main__":
+
+def main():
     with HistoryManager(opt.history_path) as hm, CursorManager():
         debug_logger = DebugLogger(opt.debug_path)
         input_filter = InputFilter(opt.input_path, dlogger=debug_logger, history_manager=hm)
@@ -26,3 +26,7 @@ if __name__ == "__main__":
                 input_filter=input_filter,
                 output_filter=output_filter
             )
+
+
+if __name__ == "__main__":
+    main()

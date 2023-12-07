@@ -1,6 +1,6 @@
-from utils import nonwhitespace_printable, _chunk_rightmost, _chunk_leftmost
-from editor import EditorStateManger
-from input_handlers import *
+from .utils import nonwhitespace_printable, _chunk_rightmost, _chunk_leftmost
+from .editor import EditorStateManger
+from .input_handlers import *
 
 HANDLER_CLASSES = [
     EscapeSequenceHandler,

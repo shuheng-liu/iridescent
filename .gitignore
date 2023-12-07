@@ -1,5 +1,6 @@
 .vscode
 .idea
+*egg-info/**
 Dockerfile.temporary
 *pyc
 

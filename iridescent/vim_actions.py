@@ -3,11 +3,11 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from string import ascii_lowercase, ascii_uppercase
 from typing import List, Union, Tuple
-from keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE, CTRL
-from utils import printable
-from utils import vim_word, vim_word_begin, vim_word_end, vim_word_boundary, vim_line_begin, vim_line_end
-from utils import vim_find, vim_till
-from clipboard import clipboard
+from .keys import LEFT as _LEFT, RIGHT as _RIGHT, DELETE as _DELETE, CTRL
+from .utils import printable
+from .utils import vim_word, vim_word_begin, vim_word_end, vim_word_boundary, vim_line_begin, vim_line_end
+from .utils import vim_find, vim_till
+from .clipboard import clipboard
 
 ascii_lowercase = ascii_lowercase.encode()
 ascii_uppercase = ascii_uppercase.encode()

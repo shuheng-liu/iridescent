@@ -1,6 +1,5 @@
-import time
 from enum import Enum
-from vim_actions import ActionEnum, get_action, _redo_stack
+from .vim_actions import ActionEnum, get_action, _redo_stack
 
 
 def _set_cursor_vertical():

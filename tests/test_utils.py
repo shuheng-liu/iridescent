@@ -21,7 +21,7 @@ import pytest
     ]
 )
 def test_chunk_leftmost(pos, expected):
-    from utils import _chunk_leftmost as cl
+    from iridescent.utils import _chunk_leftmost as cl
     content = b" ABCD EFGH "
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
@@ -51,7 +51,7 @@ def test_chunk_leftmost(pos, expected):
     ]
 )
 def test_chunk_rightmost(pos, expected):
-    from utils import _chunk_rightmost as cr
+    from iridescent.utils import _chunk_rightmost as cr
     content = b" ABCD EFGH "
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
@@ -95,7 +95,7 @@ def test_chunk_rightmost(pos, expected):
     ]
 )
 def test_vim_word(npos, expected, capital):
-    from utils import vim_word
+    from iridescent.utils import vim_word
     content = b" A@C  ^%G  "
 
     if isinstance(expected, type) and issubclass(expected, Exception):
@@ -140,7 +140,7 @@ def test_vim_word(npos, expected, capital):
     ]
 )
 def test_vim_word_end(npos, expected, capital):
-    from utils import vim_word_end
+    from iridescent.utils import vim_word_end
     content = b" A@C  ^%G  "
 
     if isinstance(expected, type) and issubclass(expected, Exception):
@@ -185,7 +185,7 @@ def test_vim_word_end(npos, expected, capital):
     ]
 )
 def test_vim_word_begin(npos, expected, capital):
-    from utils import vim_word_begin
+    from iridescent.utils import vim_word_begin
     content = b" A@C  ^%G  "
 
     if isinstance(expected, type) and issubclass(expected, Exception):
@@ -206,7 +206,7 @@ def test_vim_word_begin(npos, expected, capital):
     ]
 )
 def test_vim_line_begin(npos, err):
-    from utils import vim_line_begin
+    from iridescent.utils import vim_line_begin
     content = b"ABC"
     if err:
         with pytest.raises(Exception):
@@ -225,7 +225,7 @@ def test_vim_line_begin(npos, err):
     ]
 )
 def test_vim_line_begin(npos, err):
-    from utils import vim_line_end
+    from iridescent.utils import vim_line_end
     content = b"ABC"
     if err:
         with pytest.raises(Exception):
@@ -258,7 +258,7 @@ def test_vim_line_begin(npos, err):
     ]
 )
 def test_vim_find(npos, expected, capital):
-    from utils import vim_find
+    from iridescent.utils import vim_find
     content = b"ABCABC"
     needle = b"B"
     if isinstance(expected, type) and issubclass(expected, Exception):
@@ -292,7 +292,7 @@ def test_vim_find(npos, expected, capital):
     ]
 )
 def test_vim_till(npos, expected, capital):
-    from utils import vim_till
+    from iridescent.utils import vim_till
     content = b"ABCABC"
     needle = b"B"
     if isinstance(expected, type) and issubclass(expected, Exception):
@@ -318,7 +318,7 @@ def test_vim_till(npos, expected, capital):
 )
 @pytest.mark.parametrize(argnames="replace", argvalues=[b"()", b"[]", b"{}", b"<>"])
 def test_vim_pair(npos, expected, replace):
-    from utils import vim_pair
+    from iridescent.utils import vim_pair
     content = (
         b"(a(b)c)"
         .replace(b"(", replace[0:1])

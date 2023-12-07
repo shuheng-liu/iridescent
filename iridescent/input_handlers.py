@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from editor import EditorState
-from keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE, CTRL
-from vim_actions import Op
-from utils import printable, vim_word, vim_word_begin, vim_word_end, vim_pair
+from .editor import EditorState
+from .keys import DELETE, UP, DOWN, LEFT, RIGHT, ESCAPE, ENTER, OPTION, SIG, ESCAPE_SEQUENCE, CTRL
+from .vim_actions import Op
+from .utils import printable, vim_word, vim_word_begin, vim_word_end, vim_pair
 
 
 class AbstractKeyStrokeHandler(ABC):

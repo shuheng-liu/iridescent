@@ -1,5 +1,5 @@
 import pytest
-from vim_actions import Op
+from iridescent.vim_actions import Op
 
 
 @pytest.mark.parametrize(
@@ -133,7 +133,7 @@ from vim_actions import Op
     ]
 )
 def test_delete(arg, pos, exp_right, exp_delete, exp_clipboard):
-    from vim_actions import Delete
+    from iridescent.vim_actions import Delete
     line = b"I'm p.name !"
     action = Delete()
     output, (clp,) = action.act(arg, line, pos)
@@ -184,7 +184,7 @@ def test_delete(arg, pos, exp_right, exp_delete, exp_clipboard):
     ]
 )
 def test_delete_in_between(arg, pos, exp_right, exp_delete, exp_clipboard):
-    from vim_actions import DeleteInBetween
+    from iridescent.vim_actions import DeleteInBetween
     line = b"(hey)"
     action = DeleteInBetween()
     output, side_effects = action.act(arg, line, pos)
@@ -219,7 +219,7 @@ def test_delete_in_between(arg, pos, exp_right, exp_delete, exp_clipboard):
     ]
 )
 def test_delete_till(arg, pos, exp_count, exp_clipboard):
-    from vim_actions import DeleteTill
+    from iridescent.vim_actions import DeleteTill
     line = b"ABCDBCD"
     action = DeleteTill()
     output, side_effects = action.act(arg, line, pos)

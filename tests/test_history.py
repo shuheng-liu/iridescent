@@ -1,6 +1,6 @@
 import pytest
 import os
-from history import HistoryManager
+from iridescent.history import HistoryManager
 
 FILENAME = "history_file.txt"
 INIT_CONTENT = ":aaa\n:bbb\n:ccc\n"
