@@ -52,7 +52,7 @@ def detect_keys():
         ("OPTION.RIGHT", "<Meta><Right>, e.g., <Alt><Right> on windows or <Option><Right> on mac"),
         ("OPTION.UP", "<Meta><Up>, e.g., <Alt><Up> on windows or <Option><Up> on mac"),
         ("OPTION.DOWN", "<Meta><Down>, e.g., <Alt><Down> on windows or <Option><Down> on mac"),
-        ("OPTION.DELETE", "<Meta><DELETE>, e.g., <Alt><DELETE> on windows or <Option><DELETE> on mac"),
+        ("OPTION.DELETE", "<Meta><DELETE>, e.g., <Alt><BACKSPACE> on windows or <Option><DELETE> on mac"),
 
         ("SIG.INT", "<Ctrl>c"),
         ("SIG.BELL", "<Ctrl>g"),
