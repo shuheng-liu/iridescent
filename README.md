@@ -7,21 +7,39 @@ the [InterSystems Container Registry](https://containers.intersystems.com/) or
 alternatively [Dockerhub](https://hub.docker.com/r/daimor/intersystems-iris).
 
 For example, to use the 2023.1 IRIS Community Edition image, you can choose
-`containers.intersystems.com/intersystems/iris-community-arm64:2023.2.0.227.0` as your docker image.
+`containers.intersystems.com/intersystems/iris-community-arm64:2023.1` or
+`containers.intersystems.com/intersystems/iris-community:2023.1` as your docker image.
 You also need to determine the name of the IRIS instance running in that image.
 For example, the default instance name for the IRIS Community Edition image is `IRIS`.
 
 Next, run the following script from the root of this repository:
 
+On Unix:
+
 ```bash
 ./run_docker.sh <IMAGE:TAG> <INSTANCE_NAME>
 ```
 
+On Windows:
+
+```
+.\run_docker.bat <IMAGE:TAG> <INSTANCE_NAME>
+```
+
 For example, to run the 2023.1 IRIS Community Edition image with instance name `IRIS`:
 
+On Unix
+
 ```bash
-./run_docker.sh containers.intersystems.com/intersystems/iris-community-arm64:2023.2.0.227.0 IRIS
+./run_docker.sh containers.intersystems.com/intersystems/iris-community-arm64:2023.1 IRIS  # on ARM machines
+./run_docker.sh containers.intersystems.com/intersystems/iris-community:2023.1 IRIS # on Intel machines
 ````
+
+On Windows
+
+```
+.\run_docker.bat containers.intersystems.com/intersystems/iris-community:2023.1 IRIS  
+```
 
 The above command will
 
