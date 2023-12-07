@@ -24,7 +24,7 @@ def _detect(name, description):
     with pe.spawnu("/bin/sh") as c:
         c.setecho(False)
         c.interact(
-            escape_character=ESCAPE_SEQUENCE,
+            ESCAPE_SEQUENCE.decode(),
             input_filter=InputInterceptor(name),
             output_filter=lambda b: b"",
         )

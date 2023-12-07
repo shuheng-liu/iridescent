@@ -33,7 +33,7 @@ def main():
 
             print(r"You are communicating with IRIS via pexpect. The escape character is ^]")
             c.interact(
-                escape_character=ESCAPE_SEQUENCE,
+                escape_character=ESCAPE_SEQUENCE.decode(),
                 input_filter=input_filter,
                 output_filter=output_filter
             )
