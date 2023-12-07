@@ -115,4 +115,7 @@ class HistoryManager:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if os.path.samefile(self.file, os.path.expanduser("~/.iris_history")):
+            return
+
         self.write_to_disk()
