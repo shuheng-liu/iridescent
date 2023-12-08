@@ -1,9 +1,4 @@
 import pexpect as pe
-import signal
-import fcntl
-import struct
-import termios
-import sys
 from .filters import DebugLogger, IOFilter
 from .history import HistoryManager
 from .cursor import CursorManager
@@ -27,14 +22,19 @@ def main():
 
         with pe.spawnu(f"iris terminal {opt.instance}") as c:
 
-            # See .interact() docs at https://pexpect.readthedocs.io/en/stable/api/pexpect.html#spawn-class
-            def sigwinch_passthrough(sig, data):
-                s = struct.pack("HHHH", 0, 0, 0, 0)
-                a = struct.unpack('hhhh', fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, s))
-                if not c.closed:
-                    c.setwinsize(a[0], a[1])
+            try:
+                import signal, fcntl, struct, termios, sys
+                # See .interact() docs at https://pexpect.readthedocs.io/en/stable/api/pexpect.html#spawn-class
 
-            signal.signal(signal.SIGWINCH, sigwinch_passthrough)
+                def sigwinch_passthrough(sig, data):
+                    s = struct.pack("HHHH", 0, 0, 0, 0)
+                    a = struct.unpack('hhhh', fcntl.ioctl(sys.stdout.fileno(), termios.TIOCGWINSZ, s))
+                    if not c.closed:
+                        c.setwinsize(a[0], a[1])
+
+                signal.signal(signal.SIGWINCH, sigwinch_passthrough)
+            except ModuleNotFoundError:
+                pass
 
             c.setecho(False)
 
