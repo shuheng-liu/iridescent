@@ -3,5 +3,5 @@ ENV IRIS_INSTANCE=$IRIS_INSTANCE PATH="${PATH}:/home/irisowner/.local/bin"
 USER root
 COPY --chown=irisowner:irisowner . iridescent
 USER irisowner
-RUN python3 -m pip install -e iridescent
+RUN python3 -m pip install -e iridescent && cp iridescent/docker/iris_history_template.txt .iris_history
 ENTRYPOINT ["bash", "iridescent/docker/docker_entrypoint.sh"]

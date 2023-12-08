@@ -1,0 +1,8 @@
+:set aName = "Alice"
+:set bName = "Bob"
+:zw aName, bName
+:w "aName = ", aName, " bName = ", bName, !
+:k
+:w "Hello world"
+:zn "%SYS"
+:set key="" while 1 { set value="" set key=$ORDER(^SYS(key), 1, value) quit:key=""  w key, " = ", value, ! }
