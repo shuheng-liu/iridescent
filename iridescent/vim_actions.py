@@ -308,7 +308,9 @@ class Delete(Action):
     }
 
     def on_act(self, arg: bytes, line: bytes, pos: int) -> ActionOutput:
-        assert 0 <= pos < len(line)
+        assert 0 <= pos < len(line) or 0 == pos == len(line)
+        if len(line) == 0:
+            return [], []
 
         # special case for "dd", "cc", and "yy"
         if arg.decode() == self.__class__.__name__.lower()[0]:
